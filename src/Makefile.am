@@ -23,25 +23,73 @@ VOID=
 #
 
 bin_PROGRAMS=\
-  smips \
-  $(VOID)
+	smips \
+	$(VOID)
 
-noinst_DATA=\
-  $(VOID)
+noinst_PROGRAMS=\
+	luac \
+	$(VOID)
 
 #
 # Binaries and libraries
 # - sources
 #
 
+luac_SOURCES=\
+	luac.c \
+	$(VOID)
+luac_CFLAGS=\
+	$(GIO_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(LUA_CFLAGS) \
+	-D__SMIPS_SOURCE__ \
+	$(VOID)
+luac_LDFLAGS=\
+	$(GIO_LIBS) \
+	$(GLIB_LIBS) \
+	$(LUA_LIBS) \
+	$(VOID)
+
 smips_SOURCES=\
-  smips.c \
-  $(VOID)
+	smips.c \
+	bundle.c \
+	$(VOID)
 smips_CFLAGS=\
-  $(GLIB_CFLAGS) \
-  $(LUA_CFLAGS) \
-  $(VOID)
+	$(GIO_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(LUA_CFLAGS) \
+	-D__SMIPS_SOURCE__ \
+	$(VOID)
+smips_DEPENDENCIES=\
+	luac \
+	$(VOID)
 smips_LDFLAGS=\
-  $(GLIB_LIBS) \
-  $(LUA_LIBS) \
-  $(VOID)
+	$(GIO_LIBS) \
+	$(GLIB_LIBS) \
+	$(LUA_LIBS) \
+	$(VOID)
+
+smips_LUCS=\
+	smips.luc \
+	$(VOID)
+
+bundle.c: $(smips_LUCS)
+bundle.h: $(smips_LUCS)
+
+#
+# Extensions
+# - .lua -> .luc
+# - .gresources.xml -> .c
+# - .gresources.xml -> .h
+#
+
+SUFFIXES=.lua .luc .gresources.xml
+
+.lua.luc:
+	./luac -o $@ $<
+
+.gresources.xml.c:
+	$(GLIB_COMPILE_RESOURCES) --target=$@ --generate-source $<
+
+.gresources.xml.h:
+	$(GLIB_COMPILE_RESOURCES) --target=$@ --generate-header $<

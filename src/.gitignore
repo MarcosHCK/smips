@@ -23,5 +23,11 @@
 *.Plo
 *.Tpo
 
+luac
+luac.exe
 smips
 smips.exe
+
+bundle.c
+bundle.h
+*.luc
