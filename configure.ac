@@ -123,10 +123,11 @@ AC_PROG_RANLIB
 
 PKG_PROG_PKG_CONFIG
 
+
+AC_CHECK_PROG([GPERF], [gperf], [gperf], [no])
+AS_IF([test "x$GPERF" = "xno"], [AC_MSG_FAILURE([gperf not found our your system])])
 AC_CHECK_PROG([GLIB_COMPILE_RESOURCES], [glib-compile-resources], [glib-compile-resources], [no])
-if test "x$GLIB_COMPILE_RESOURCES" = "xno"; then
-  AC_MSG_FAILURE([glib-compile-resources not found our your system])
-fi
+AS_IF([test "x$GLIB_COMPILE_RESOURCES" = "xno"], [AC_MSG_FAILURE([glib-compile-resources not found our your system])])
 
 #
 # Check for libraries using pkg-config
@@ -135,6 +136,7 @@ fi
 
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
+PKG_CHECK_MODULES([GMODULE], [gmodule-2.0])
 PKG_CHECK_EXISTS([luajit], [ PKG_CHECK_MODULES([LUA], [luajit]) ], [
 PKG_CHECK_EXISTS([lua5.4], [ PKG_CHECK_MODULES([LUA], [lua5.4]) ], [
 PKG_CHECK_EXISTS([lua54], [ PKG_CHECK_MODULES([LUA], [lua54]) ], [

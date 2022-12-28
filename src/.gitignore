@@ -30,4 +30,5 @@ smips.exe
 
 bundle.c
 bundle.h
+optionarg.c
 *.luc

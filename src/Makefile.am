@@ -30,6 +30,10 @@ noinst_PROGRAMS=\
 	luac \
 	$(VOID)
 
+noinst_HEADERS=\
+	smips.h \
+	$(VOID)
+
 #
 # Binaries and libraries
 # - sources
@@ -51,12 +55,18 @@ luac_LDFLAGS=\
 	$(VOID)
 
 smips_SOURCES=\
+	bloader.c \
+	optionarg.c \
+	load.c \
+	options.c \
+	rloader.c \
 	smips.c \
 	bundle.c \
 	$(VOID)
 smips_CFLAGS=\
 	$(GIO_CFLAGS) \
 	$(GLIB_CFLAGS) \
+	$(GMODULE_CFLAGS) \
 	$(LUA_CFLAGS) \
 	-D__SMIPS_SOURCE__ \
 	$(VOID)
@@ -66,6 +76,7 @@ smips_DEPENDENCIES=\
 smips_LDFLAGS=\
 	$(GIO_LIBS) \
 	$(GLIB_LIBS) \
+	$(GMODULE_LIBS) \
 	$(LUA_LIBS) \
 	$(VOID)
 
@@ -75,21 +86,32 @@ smips_LUCS=\
 
 bundle.c: $(smips_LUCS)
 bundle.h: $(smips_LUCS)
+smips.luc: luac
 
 #
 # Extensions
 # - .lua -> .luc
+# - .stringlist -> .c
 # - .gresources.xml -> .c
 # - .gresources.xml -> .h
 #
 
-SUFFIXES=.lua .luc .gresources.xml
+SUFFIXES=.lua .luc .stringlist .gresources.xml
 
 .lua.luc:
 	./luac -o $@ $<
+
+.stringlist.c:
+	$(GPERF) --output-file $@ -PCI $<
 
 .gresources.xml.c:
 	$(GLIB_COMPILE_RESOURCES) --target=$@ --generate-source $<
 
 .gresources.xml.h:
 	$(GLIB_COMPILE_RESOURCES) --target=$@ --generate-header $<
+
+CLEANFILES=\
+	bundle.c \
+	bundle.h \
+	*.luc \
+	$(VOID)
