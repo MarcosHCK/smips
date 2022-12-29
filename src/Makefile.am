@@ -81,6 +81,7 @@ smips_LDFLAGS=\
 	$(VOID)
 
 smips_LUCS=\
+	log.luc \
 	smips.luc \
 	$(VOID)
 

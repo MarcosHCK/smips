@@ -27,6 +27,7 @@ Author: MarcosHCK
       Lua sources
     -->
 
+    <file>log.luc</file>
     <file>smips.luc</file>
 
   </gresource>
