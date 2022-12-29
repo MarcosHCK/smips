@@ -55,8 +55,8 @@ luac_LDFLAGS=\
 	$(VOID)
 
 smips_SOURCES=\
+	application.c \
 	bloader.c \
-	optionarg.c \
 	load.c \
 	options.c \
 	rloader.c \

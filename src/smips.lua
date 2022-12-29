@@ -15,40 +15,26 @@
 --  You should have received a copy of the GNU General Public License
 --  along with SMIPS Assembler.  If not, see <http://www.gnu.org/licenses/>.
 ]]
+local app = require ('application')
+local log = require ('log')
 
-do
-  local function main (app, files)
-    print (app:getopt ('o'))
-  return true
-  end
+local function process_one (file)
+  local line;
 
-  local opt = require ('options')
-  local app = nil
+  repeat
+  until (not line)
+end
 
-  app =
-  {
-    context = opt.Context ('files'),
+local function main (...)
+  local files = {...}
+  local output, input
+  local file
 
-    groups =
-    {
-      main = opt.Group ('Main', 'Main Options', 'Main Options'),
-    },
-
-    getopt = function (self, name)
-      for _, group in ipairs (self.groups) do
-        local value = group:option (name)
-        if (value ~= nil) then
-          return value
-        end
-      end
-    end,
-  }
-
-  local result = { app.context:parse (...) }
-
-  if (not result [1] and #result > 1) then
-    io.stderr:write (result [2], '\n')
-  else
-    main (app, result)
+  for _, file in ipairs (files) do
+    file = assert (io.open (file, 'r'))
+    process_one (file)
+    file:close ()
   end
 end
+
+app:main (main, ...)

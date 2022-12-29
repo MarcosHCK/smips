@@ -1,4 +1,3 @@
-%{
 /* Copyright 2021-2025 MarcosHCK
  * This file is part of SMIPS Assembler.
  *
@@ -16,23 +15,33 @@
  * along with SMIPS Assembler. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <config.h>
-#include <glib.h>
-%}
+#ifndef __SMIPS_APPLICATION__
+#define __SMIPS_APPLICATION__ 1
+#include <smips.h>
 
-%struct-type
-%define hash-function-name optionarg_hash
-%define lookup-function-name optionarg_lookup
-%compare-strncmp
+typedef struct _Application Application;
+typedef struct _Option Option;
 
-struct OptionArg { int name; GOptionArg value; };
-%%
-none,           G_OPTION_ARG_NONE
-string,         G_OPTION_ARG_STRING
-int,            G_OPTION_ARG_INT
-callback,       G_OPTION_ARG_CALLBACK
-filename,       G_OPTION_ARG_FILENAME
-string_array,   G_OPTION_ARG_STRING_ARRAY
-filename_array, G_OPTION_ARG_FILENAME_ARRAY
-double,         G_OPTION_ARG_DOUBLE
-int64,          G_OPTION_ARG_INT64
+#if __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+struct _Application
+{
+  const gchar* output;
+};
+
+struct _Option
+{
+  int name;
+  GOptionArg type;
+  goffset offset;
+};
+
+G_GNUC_INTERNAL const struct _Option* options_lookup (const char *str, size_t len);
+
+#if __cplusplus
+}
+#endif // __cplusplus
+
+#endif // __SMIPS_APPLICATION__
