@@ -18,21 +18,53 @@
 local app = require ('application')
 local log = require ('log')
 
-local function process_one (file)
-  local line;
-
-  repeat
-  until (not line)
-end
-
 local function main (...)
   local files = {...}
   local output, input
   local file
 
+  local function process_stat (stat)
+    stat = stat:gsub ('^%s*', '')
+    stat = stat:gsub ('%s*$', '')
+
+    local tag = stat:match ('^[a-zA-Z_]+%:$')
+    if (tag ~= nil) then
+      print (('tag \'%s\''):format (tag))
+    else
+      print (('stat \'%s\''):format (stat))
+    end
+  end
+
+  local function process_line (line)
+    local stat, left = line:match ('([^:]+:)(.+)')
+    if (not stat) then
+      process_stat (line)
+    else
+      process_stat (stat)
+      process_line (left)
+    end
+  end
+
+  local function process_file (file)
+    local line;
+
+    repeat
+      line = file:read ('*l')
+      if (line) then
+        line = line:gsub ('#.*$', '')
+
+        for line in line:gmatch ('[^;]+') do
+          if (#line > 1) then
+            process_line (line)
+          end
+        end
+      end
+    until (not line)
+  end
+
   for _, file in ipairs (files) do
     file = assert (io.open (file, 'r'))
-    process_one (file)
+    process_file (file)
     file:close ()
   end
 end
