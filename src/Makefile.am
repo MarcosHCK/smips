@@ -56,12 +56,11 @@ luac_LDFLAGS=\
 
 smips_SOURCES=\
 	application.c \
-	bloader.c \
-	load.c \
-	options.c \
-	rloader.c \
-	smips.c \
 	bundle.c \
+	load.c \
+	loader.c \
+	options.c \
+	smips.c \
 	$(VOID)
 smips_CFLAGS=\
 	$(GIO_CFLAGS) \
