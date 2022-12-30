@@ -17,55 +17,73 @@
 ]]
 local app = require ('application')
 local log = require ('log')
+local units = require ('unit')
 
-local function main (...)
-  local files = {...}
-  local output, input
-  local file
+local function process (unit)
+  local linen = 0
 
   local function process_stat (stat)
     stat = stat:gsub ('^%s*', '')
     stat = stat:gsub ('%s*$', '')
 
-    local tag = stat:match ('^[a-zA-Z_]+%:$')
+    local tag = stat:match ('^([a-zA-Z_]+)%:$')
     if (tag ~= nil) then
-      print (('tag \'%s\''):format (tag))
+      unit.add_tag (tag)
     else
-      print (('stat \'%s\''):format (stat))
+      local inst, left = stat:match ('^([a-z]+)%s*(.*)$')
+      if (not inst) then
+        log.error ('Malformed line')
+        return true
+      else
+        print (inst)
+      end
     end
   end
 
   local function process_line (line)
     local stat, left = line:match ('([^:]+:)(.+)')
     if (not stat) then
-      process_stat (line)
+      if (process_stat (line)) then
+        return true
+      end
     else
-      process_stat (stat)
-      process_line (left)
+      if (process_stat (stat)) then
+        return true
+      end
+      if (process_line (left)) then
+        return true
+      end
     end
   end
 
-  local function process_file (file)
-    local line;
+  local line;
 
-    repeat
-      line = file:read ('*l')
-      if (line) then
-        line = line:gsub ('#.*$', '')
+  repeat
+    line = io.read ('*l')
+    if (line) then
+      line = line:gsub ('#.*$', '')
+      linen = linen + 1
 
-        for line in line:gmatch ('[^;]+') do
-          if (#line > 1) then
-            process_line (line)
+      for line in line:gmatch ('[^;]+') do
+        if (#line > 1) then
+          if (process_line (line)) then
+            return true
           end
         end
       end
-    until (not line)
-  end
+    end
+  until (not line)
+end
+
+local function main (...)
+  local files = {...}
+  local output
+
+  local unit = units.new ()
 
   for _, file in ipairs (files) do
-    file = assert (io.open (file, 'r'))
-    process_file (file)
-    file:close ()
+    io.input (assert (io.open (file, 'r')))
+    process (unit)
   end
 end
 
