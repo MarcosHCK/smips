@@ -31,13 +31,20 @@ static int checkarg (lua_State* L)
   int i, argn, result = 0;
 
   argn = luaL_checkinteger (L, 1);
-  got = luaL_typename (L, 2);
+
+  if (lua_isnone (L, 2))
+    luaL_argerror (L, 2, "expected something");
+  else
+  if (luaL_getmetafield (L, 2, "__name") == LUA_TNIL)
+    got = luaL_typename (L, 2);
+  else
+    got = lua_tostring (L, -1);
 
   luaL_Buffer B;
   luaL_buffinit (L, & B);
   luaL_addstring (& B, "expected");
 
-  for (i = 3; i < top; i++)
+  for (i = 3; i < (top + 1); i++)
   {
     type = luaL_checkstring (L, i);
 
@@ -152,12 +159,8 @@ static int pmain (lua_State* L)
 #else // LUA_VERSION_NUM < 502
   lua_pushvalue (L, LUA_GLOBALSINDEX);
 #endif // LUA_VERSION_NUM
-  lua_pushliteral (L, "argv0");
-  lua_pushstring (L, argv [0]);
-  lua_settable (L, -3);
-  lua_pushliteral (L, "checkArg");
   lua_pushcfunction (L, checkarg);
-  lua_settable (L, -3);
+  lua_setfield (L, -2, "checkArg");
   lua_pop (L, 1);
 
 #if LUA_VERSION_NUM < 502
