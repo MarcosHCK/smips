@@ -28,6 +28,8 @@ Author: MarcosHCK
     -->
 
     <file>smips.luc</file>
+    <file>unit.luc</file>
+    <file>vector.luc</file>
 
   </gresource>
 

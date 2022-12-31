@@ -85,6 +85,8 @@ smips_LDFLAGS=\
 
 smips_LUCS=\
 	smips.luc \
+	unit.luc \
+	vector.luc \
 	$(VOID)
 
 bundle.c: $(smips_LUCS)

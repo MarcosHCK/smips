@@ -17,8 +17,61 @@
 ]]
 local log = require ('log')
 local opt = require ('options')
+local units = require ('unit')
 
 do
+  local r_insts =
+  {
+    nop = { opcode = 0, func = 0, takes = { rd = false, rt = false, rs = false, }, },
+    add = { opcode = 0, func = 32, takes = { rd = true, rt = true, rs = true, }, },
+    sub = { opcode = 0, func = 34, takes = { rd = true, rt = true, rs = true, }, },
+    mult = { opcode = 0, func = 24, takes = { rd = false, rt = true, rs = true, }, },
+    mulu = { opcode = 0, func = 25, takes = { rd = false, rt = true, rs = true, }, },
+    div = { opcode = 0, func = 26, takes = { rd = false, rt = true, rs = true, }, },
+    divu = { opcode = 0, func = 27, takes = { rd = false, rt = true, rs = true, }, },
+    slt = { opcode = 0, func = 42, takes = { rd = true, rt = true, rs = true, }, },
+    sltu = { opcode = 0, func = 43, takes = { rd = true, rt = true, rs = true, }, },
+    ['and'] = { opcode = 0, func = 36, takes = { rd = true, rt = true, rs = true, }, },
+    ['or'] = { opcode = 0, func = 37, takes = { rd = true, rt = true, rs = true, }, },
+    ['nor'] = { opcode = 0, func = 39, takes = { rd = true, rt = true, rs = true, }, },
+    ['xor'] = { opcode = 0, func = 40, takes = { rd = true, rt = true, rs = true, }, },
+    pop = { opcode = 56, func = 0, takes = { rd = true, rt = false, rs = false, }, },
+    push = { opcode = 56, func = 1, takes = { rd = false, rt = false, rs = true, }, },
+    jr = { opcode = 0, func = 8, takes = { rd = false, rt = false, rs = true, }, },
+    mfhi = { opcode = 0, func = 16, takes = { rd = true, rt = false, rs = false, }, },
+    mflo = { opcode = 0, func = 18, takes = { rd = true, rt = false, rs = false, }, },
+    halt = { opcode = 63, func = 63, takes = { rd = false, rt = false, rs = false, }, },
+    tty = { opcode = 63, func = 1, takes = { rd = false, rt = false, rs = true, }, },
+    rnd = { opcode = 63, func = 2, takes = { rd = true, rt = false, rs = false, }, },
+    kbd = { opcode = 63, func = 4, takes = { rd = true, rt = false, rs = false, }, },
+  }
+
+  local i_insts =
+  {
+    addi = { opcode = 8, takes = { rt = true, rs = true, }, },
+    slti = { opcode = 10, takes = { rt = true, rs = true, }, },
+    sltiu = { opcode = 11, takes = { rt = true, rs = true, }, },
+    andi = { opcode = 12, takes = { rt = true, rs = true, }, },
+    ori = { opcode = 13, takes = { rt = true, rs = true, }, },
+    xori = { opcode = 14, takes = { rt = true, rs = true, }, },
+    lw = { opcode = 35, takes = { rt = true, rs = false, }, address = true, },
+    sw = { opcode = 43, takes = { rt = true, rs = false, }, address = true, },
+    beq = { opcode = 4, takes = { rt = true, rs = true, }, tagable = 'r', },
+    bne = { opcode = 5, takes = { rt = true, rs = true, }, tagable = 'r', },
+    blez = { opcode = 6, takes = { rt = false, rs = true, }, tagable = 'r', },
+    bgtz = { opcode = 7, takes = { rt = false, rs = true, }, tagable = 'r', },
+    bltz = { opcode = 1, takes = { rt = false, rs = true, }, tagable = 'r', },
+  }
+
+  local j_insts =
+  {
+    j = { opcode = 2, tagable = 'a', },
+  }
+
+  local macros =
+  {
+  }
+
   local function feed (unit)
     local linen = 0
     local line
@@ -39,7 +92,8 @@ do
       end
     end
 
-    local function feed_tag (tag)
+    local function feed_tag (tagname)
+      unit:add_tag (tagname)
     end
 
     local function feed_inst (inst, ...)
@@ -101,7 +155,7 @@ do
 
   local function main (...)
     local files = {...}
-    local unit = nil
+    local unit = units.new ()
 
     for _, file in ipairs (files) do
       io.input (assert (io.open (file, 'r')))
