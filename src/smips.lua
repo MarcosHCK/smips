@@ -15,76 +15,99 @@
 --  You should have received a copy of the GNU General Public License
 --  along with SMIPS Assembler.  If not, see <http://www.gnu.org/licenses/>.
 ]]
-local app = require ('application')
 local log = require ('log')
-local units = require ('unit')
+local opt = require ('options')
 
-local function process (unit)
-  local linen = 0
+do
+  local function feed (unit)
+    local linen = 0
+    local line
 
-  local function process_stat (stat)
-    stat = stat:gsub ('^%s*', '')
-    stat = stat:gsub ('%s*$', '')
-
-    local tag = stat:match ('^([a-zA-Z_]+)%:$')
-    if (tag ~= nil) then
-      unit.add_tag (tag)
-    else
-      local inst, left = stat:match ('^([a-z]+)%s*(.*)$')
-      if (not inst) then
-        log.error ('Malformed line')
-        return true
+    local function compe (...)
+      if (select ('#', ...) > 1) then
+        log.error ('%i: %s', linen, string.format (...))
       else
-        print (inst)
+        log.error ('%i: %s', linen, (...))
       end
     end
-  end
 
-  local function process_line (line)
-    local stat, left = line:match ('([^:]+:)(.+)')
-    if (not stat) then
-      if (process_stat (line)) then
-        return true
-      end
-    else
-      if (process_stat (stat)) then
-        return true
-      end
-      if (process_line (left)) then
-        return true
+    local function breakargs (args)
+      local arg, left = args:match ('^([^,]+)(.*)$')
+      if (arg) then
+        left = left:gsub ('^,', '')
+        return arg, breakargs (left)
       end
     end
-  end
 
-  local line;
+    local function feed_tag (tag)
+    end
 
-  repeat
-    line = io.read ('*l')
-    if (line) then
-      line = line:gsub ('#.*$', '')
-      linen = linen + 1
+    local function feed_inst (inst, ...)
+    end
 
-      for line in line:gmatch ('[^;]+') do
-        if (#line > 1) then
-          if (process_line (line)) then
-            return true
+    local function feed_stat (stat)
+      local tag = stat:match ('^(%.?[a-zA-Z_][a-zA-Z_0-9]*):$')
+      if (tag ~= nil) then
+        feed_tag (tag)
+      else
+        local inst, left = stat:match ('^([a-z]+)(.*)$')
+        if (not inst) then
+          compe ('Malformed line \'%s\'', line)
+        else
+          if (#left == 0) then
+            feed_inst (inst)
+          else
+            local args = left:match ('^%s+(.*)$')
+            if (not args) then
+              compe ('Malformed line \'%s\'', line)
+            else
+              feed_inst (inst, breakargs (args))
+            end
           end
         end
       end
     end
-  until (not line)
-end
 
-local function main (...)
-  local files = {...}
-  local output
+    local function feed_rstat (stat)
+      stat = stat:gsub ('^%s*', '')
+      stat = stat:gsub ('%s*$', '')
+      if (#stat > 0) then
+        feed_stat (stat)
+      end
+    end
 
-  local unit = units.new ()
+    local function feed_chunk (chunk)
+      local stat, left = chunk:match ('([^:]+:)(.+)')
+      if (not stat) then
+        feed_rstat (chunk)
+      else
+        feed_rstat (stat)
+        feed_chunk (left)
+      end
+    end
 
-  for _, file in ipairs (files) do
-    io.input (assert (io.open (file, 'r')))
-    process (unit)
+    repeat
+      line = io.read ('*l')
+      if (line) then
+        line = line:gsub ('#.*$', '')
+        linen = linen + 1
+
+        for chunk in line:gmatch ('[^;]+') do
+          feed_chunk (chunk)
+        end
+      end
+    until (not line)
   end
-end
 
-app:main (main, ...)
+  local function main (...)
+    local files = {...}
+    local unit = nil
+
+    for _, file in ipairs (files) do
+      io.input (assert (io.open (file, 'r')))
+      feed (unit)
+    end
+  end
+
+  main (opt:parse (...))
+end

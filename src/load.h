@@ -15,33 +15,25 @@
  * along with SMIPS Assembler. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef __SMIPS_APPLICATION__
-#define __SMIPS_APPLICATION__ 1
-#include <smips.h>
+#ifndef __SMIPS_LOAD__
+#define __SMIPS_LOAD__ 1
+#include <glib.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
-typedef struct _Application Application;
-typedef struct _Option Option;
+#define GRESROOT "/org/hck/smips"
 
 #if __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-struct _Application
-{
-  const gchar* output;
-};
-
-struct _Option
-{
-  int name;
-  GOptionArg type;
-  goffset offset;
-};
-
-G_GNUC_INTERNAL const struct _Option* options_lookup (const char *str, size_t len);
+G_GNUC_INTERNAL int _smips_luc_loader (lua_State* L);
+G_GNUC_INTERNAL int _smips_sym_loader (lua_State* L);
+G_GNUC_INTERNAL int _smips_load (lua_State* L, const gchar* path);
 
 #if __cplusplus
 }
 #endif // __cplusplus
 
-#endif // __SMIPS_APPLICATION__
+#endif // __SMIPS_LOAD__

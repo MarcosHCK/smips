@@ -16,6 +16,8 @@
  *
  */
 #include <config.h>
+#include <load.h>
+#include <log.h>
 #include <smips.h>
 
 #define _g_object_unref0(var) ((var == NULL) ? NULL : (var = (g_object_unref (var), NULL)))
@@ -78,17 +80,34 @@ return 0;
 
 static int report (lua_State* L)
 {
-  const gchar* err = lua_tostring(L, 1);
-  if (G_UNLIKELY (err == NULL))
-  {
-    if(luaL_callmeta (L, 1, "__tostring") && lua_type (L, -1) == LUA_TSTRING)
-      err = lua_tostring (L, -1);
-    else
-      err = lua_pushfstring (L, "(error object is a %s value)", lua_typename (L, 1));
-  }
+  const char* message;
+  const char* typename;
 
-  luaL_traceback (L, L, err, 1);
-return 1;
+  if ((message = lua_tostring (L, 1)) != NULL)
+    message = lua_pushfstring (L, "Internal error (run): %s", message);
+  else
+  {
+    if (luaL_callmeta (L, 1, "__tostring") && lua_type (L, -1) == LUA_TSTRING)
+    {
+      message = lua_tostring (L, -1);
+      message = lua_pushfstring (L, "Internal error (run): %s", message);
+    }
+    else
+    {
+      if (!_smips_islogerror (L, 1))
+      {
+        typename = lua_typename (L, lua_type (L, 1));
+        message = lua_pushfstring (L, "(error object is a %s value)", typename);
+        message = lua_pushfstring (L, "Internal error (run): %s", message);
+      }
+      else
+      {
+        lua_getfield (L, 1, "message");
+        return 1;
+      }
+    }
+  }
+return (luaL_traceback (L, L, message, 1), 1);
 }
 
 static int pmain (lua_State* L)
@@ -121,10 +140,10 @@ static int pmain (lua_State* L)
   size = lua_objlen (L, -1);
 #endif // LUA_VERSION_NUM
   lua_pushinteger (L, size + 1);
-  lua_pushcfunction (L, rloader);
+  lua_pushcfunction (L, _smips_luc_loader);
   lua_settable (L, -3);
   lua_pushinteger (L, size + 2);
-  lua_pushcfunction (L, bloader);
+  lua_pushcfunction (L, _smips_sym_loader);
   lua_settable (L, -3);
   lua_pop (L, 2);
 
@@ -152,7 +171,7 @@ static int pmain (lua_State* L)
 
   g_assert (lua_gettop (L) == 0);
   lua_pushcfunction (L, report);
-  pload (L, GRESROOT "/smips.luc");
+  _smips_load (L, GRESROOT "/smips.luc");
 
   for (i = 1; i < argc; i++)
     lua_pushstring (L, argv [i]);
@@ -161,7 +180,7 @@ static int pmain (lua_State* L)
     case LUA_OK:
       break;
     case LUA_ERRRUN:
-      luaL_error (L, "Internal error (run): %s", lua_tostring (L, -1));
+      lua_error (L);
       break;
 
     case LUA_ERRMEM:

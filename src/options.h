@@ -15,34 +15,23 @@
  * along with SMIPS Assembler. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <config.h>
-#include <inst.h>
+#ifndef __SMIPS_OPTIONS__
+#define __SMIPS_OPTIONS__ 1
 #include <smips.h>
 
-typedef struct _Template Template;
+typedef struct _SmipsOptions SmipsOptions;
 
-struct _Template
+#if __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+struct _SmipsOptions
 {
-  GHashTable* attrs;
+  const gchar* output;
 };
 
-G_MODULE_EXPORT
-int luaopen_inst (lua_State* L)
-{
-  luaL_newmetatable (L, R_INST);
-  lua_pop (L, 1);
-  luaL_newmetatable (L, I_INST);
-  lua_pop (L, 1);
-  luaL_newmetatable (L, J_INST);
-  lua_pop (L, 1);
-
-  lua_createtable (L, 0, 0);
-
-  lua_createtable (L, 0, 0);
-  lua_setfield (L, -2, "r_inst");
-  lua_createtable (L, 0, 0);
-  lua_setfield (L, -2, "i_inst");
-  lua_createtable (L, 0, 0);
-  lua_setfield (L, -2, "j_inst");
-return 1;
+#if __cplusplus
 }
+#endif // __cplusplus
+
+#endif // __SMIPS_OPTIONS__

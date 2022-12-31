@@ -1,3 +1,4 @@
+%{
 /* Copyright 2021-2025 MarcosHCK
  * This file is part of SMIPS Assembler.
  *
@@ -15,23 +16,17 @@
  * along with SMIPS Assembler. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef __SMIPS_INST__
-#define __SMIPS_INST__ 1
-#include <glib.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#include <config.h>
+#include <option.h>
+%}
 
-#define R_INST "SmipsRInst"
-#define I_INST "SmipsIInst"
-#define J_INST "SmipsJInst"
+%struct-type
+%define hash-function-name _smips_options_hash
+%define lookup-function-name _smips_options_lookup
+%compare-strncmp
+%omit-struct-type
 
-#if __cplusplus
-extern "C" {
-#endif // __cplusplus
-
-#if __cplusplus
-}
-#endif // __cplusplus
-
-#endif // __SMIPS_INST__
+struct _SmipsOption {};
+%%
+output, G_STRUCT_OFFSET (SmipsOptions, output), G_OPTION_ARG_FILENAME
+o, G_STRUCT_OFFSET (SmipsOptions, output), G_OPTION_ARG_FILENAME

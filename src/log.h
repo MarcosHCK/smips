@@ -1,4 +1,3 @@
-%{
 /* Copyright 2021-2025 MarcosHCK
  * This file is part of SMIPS Assembler.
  *
@@ -16,17 +15,23 @@
  * along with SMIPS Assembler. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <config.h>
-#include <application.h>
-%}
+#ifndef __SMIPS_LOG__
+#define __SMIPS_LOG__ 1
+#include <glib.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
-%struct-type
-%define hash-function-name options_hash
-%define lookup-function-name options_lookup
-%compare-strncmp
-%omit-struct-type
+#if __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-struct _Option {};
-%%
-output, G_OPTION_ARG_FILENAME, G_STRUCT_OFFSET (Application, output)
-o, G_OPTION_ARG_FILENAME, G_STRUCT_OFFSET (Application, output)
+G_GNUC_INTERNAL int _smips_log_error (lua_State* L, const gchar* error) G_GNUC_NORETURN;
+G_GNUC_INTERNAL int _smips_log_gerror (lua_State* L, GError* error) G_GNUC_NORETURN;
+G_GNUC_INTERNAL int _smips_islogerror (lua_State* L, int idx);
+
+#if __cplusplus
+}
+#endif // __cplusplus
+
+#endif // __SMIPS_LOG__

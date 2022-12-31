@@ -15,18 +15,28 @@
  * along with SMIPS Assembler. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef __SMIPS__
-#define __SMIPS__ 1
+#ifndef __SMIPS_OPTION__
+#define __SMIPS_OPTION__ 1
+#include <options.h>
 #include <glib.h>
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
-G_BEGIN_DECLS
+typedef struct _SmipsOption SmipsOption;
 
-G_GNUC_INTERNAL int gerror (lua_State* L, const char* loc, GError* error) G_GNUC_NORETURN;
-#define gerror(error) (gerror) (L, G_STRLOC, ((error)))
+#if __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-G_END_DECLS
+struct _SmipsOption
+{
+  int name;
+  goffset offset;
+  GOptionArg type;
+};
 
-#endif // __SMIPS__
+G_GNUC_INTERNAL const SmipsOption* _smips_options_lookup (const char *str, size_t len);
+
+#if __cplusplus
+}
+#endif // __cplusplus
+
+#endif // __SMIPS_OPTION__

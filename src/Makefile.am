@@ -31,6 +31,10 @@ noinst_PROGRAMS=\
 	$(VOID)
 
 noinst_HEADERS=\
+	load.h \
+	log.h \
+	option.h \
+	options.h \
 	smips.h \
 	$(VOID)
 
@@ -55,14 +59,12 @@ luac_LDFLAGS=\
 	$(VOID)
 
 smips_SOURCES=\
-	application.c \
 	bundle.c \
-	inst.c \
 	load.c \
-	loader.c \
+	log.c \
+	option.c \
 	options.c \
 	smips.c \
-	unit.c \
 	$(VOID)
 smips_CFLAGS=\
 	$(GIO_CFLAGS) \
@@ -82,7 +84,6 @@ smips_LDFLAGS=\
 	$(VOID)
 
 smips_LUCS=\
-	log.luc \
 	smips.luc \
 	$(VOID)
 
