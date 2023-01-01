@@ -34,6 +34,10 @@ G_MODULE_EXPORT
 int luaopen_log (lua_State* L)
 {
   luaL_newmetatable (L, META);
+#ifdef LUA_ISJIT
+  lua_pushliteral (L, META);
+  lua_setfield (L, -2, "__name");
+#endif // LUA_ISJIT
   lua_pop (L, 1);
 
   lua_createtable (L, 0, 1);

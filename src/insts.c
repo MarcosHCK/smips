@@ -145,6 +145,10 @@ int luaopen_insts (lua_State* L)
   lua_createtable (L, 0, 1);
 
   luaL_newmetatable (L, META);
+#ifdef LUA_ISJIT
+  lua_pushliteral (L, META);
+  lua_setfield (L, -2, "__name");
+#endif // LUA_ISJIT
   lua_pushcfunction (L, __gc);
   lua_setfield (L, -2, "__gc");
   lua_pushvalue (L, -2);
