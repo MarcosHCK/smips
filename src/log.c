@@ -23,39 +23,11 @@
 
 static int _error (lua_State* L)
 {
-  int top;
-  if (1 >= (top = lua_gettop (L)))
-  {
-    luaL_checkstring (L, 1);
-    lua_createtable (L, 0, 1);
-    lua_pushvalue (L, -2);
-    lua_setfield (L, -2, "message");
-#if LUA_VERSION_NUM >= 502
-    luaL_setmetatable (L, META);
-#else // LUA_VERSION_NUM < 502
-    lua_getfield (L, LUA_REGISTRYINDEX, META);
-    lua_setmetatable (L, -2);
-#endif // LUA_VERSION_NUM
-    lua_error (L);
-  }
-  else
-  {
-#if LUA_VERSION_NUM >= 502
-    lua_pushinteger (L, LUA_RIDX_GLOBALS);
-    lua_gettable (L, LUA_REGISTRYINDEX);
-#else // LUA_VERSION_NUM < 502
-    lua_pushvalue (L, LUA_GLOBALSINDEX);
-#endif // LUA_VERSION_NUM
-    lua_getfield (L, -1, "string");
-    lua_getfield (L, -1, "format");
-    lua_insert (L, 1);
-    lua_pop (L, 2);
-    lua_pushcfunction (L, _error);
-    lua_insert (L, 1);
-    lua_call (L, top, 1);
-    lua_call (L, 1, 0);
-  }
-return 0;
+  const gchar* message = luaL_checkstring (L, 1);
+  const int user = luaL_optinteger (L, 2, 1);
+  const int level = luaL_optinteger (L, 3, 1);
+    lua_settop (L, 1);
+return _smips_log_error (L, level, user);
 }
 
 G_MODULE_EXPORT
@@ -70,28 +42,48 @@ int luaopen_log (lua_State* L)
 return 1;
 }
 
-int _smips_log_error (lua_State* L, const gchar* error)
+int _smips_log_error (lua_State* L, int level, int user)
 {
-  lua_pushcfunction (L, _error);
-  lua_pushstring (L, error);
-    lua_call (L, 1, 0);
+  if (lua_gettop (L) < 1)
+  lua_pushstring (L, "Failed!");
+  lua_createtable (L, 0, 3);
+#if LUA_VERSION_NUM >= 502
+  luaL_setmetatable (L, META);
+#else // LUA_VERSION_NUM < 502
+  lua_getfield (L, LUA_REGISTRYINDEX, META);
+  lua_setmetatable (L, -2);
+#endif // LUA_VERSION_NUM
+  lua_pushvalue (L, -2);
+  lua_setfield (L, -2, "message");
+  lua_pushinteger (L, level);
+  lua_setfield (L, -2, "level");
+  lua_pushinteger (L, user);
+  lua_setfield (L, -2, "user");
+  lua_error (L);
   g_assert_not_reached ();
 }
 
-int _smips_log_gerror (lua_State* L, GError* error)
+int _smips_log_lerror (lua_State* L, int user, const gchar* message)
 {
-  GQuark q = error->domain;
-  gint c = error->code;
-  const gchar* m = error->message;
-  const gchar* d = g_quark_to_string (q);
-
-  lua_pushfstring (L, "%s: %i: %s", d, c, m);
-    g_error_free (error);
-    lua_error (L);
-  g_assert_not_reached ();
+  lua_pushstring (L, message);
+  _smips_log_error (L, 1, user);
 }
 
-int _smips_islogerror (lua_State* L, int idx)
+int _smips_log_gerror (lua_State* L, int user, GError* error)
+{
+  lua_pushfstring
+  (L,
+   "%s: %i: %s",
+   g_quark_to_string
+   (error->domain),
+    error->code,
+    error->message);
+
+  g_error_free (error);
+  _smips_log_error (L, 1, user);
+}
+
+static int islogerror (lua_State* L, int idx)
 {
     int result = 0;
   if (lua_getmetatable (L, idx))
@@ -107,4 +99,54 @@ int _smips_islogerror (lua_State* L, int idx)
     lua_pop (L, 2);
   }
 return result;
+}
+
+static const char* trymessage (lua_State* L, int idx)
+{
+  const char* message;
+  const char* typename;
+
+  if ((message = lua_tostring (L, idx)) == NULL)
+  {
+    if (luaL_callmeta (L, idx, "__tostring") && lua_type (L, -1) == LUA_TSTRING)
+      message = lua_tostring (L, -1);
+    else
+    {
+      typename = lua_typename (L, lua_type (L, idx));
+      message = lua_pushfstring (L, "(error object is a %s value)", typename);
+    }
+  }
+return message;
+}
+
+int _smips_msgh (lua_State* L)
+{
+  const char* message;
+  int level = 1;
+  int user = 0;
+
+  if (!islogerror (L, 1))
+    message = trymessage (L, 1);
+  else
+  {
+    lua_getfield (L, 1, "message");
+    lua_getfield (L, 1, "level");
+    lua_getfield (L, 1, "user");
+
+    user = luaL_optinteger (L, -1, user);
+    level = luaL_optinteger (L, -2, level);
+    message = trymessage (L, -3);
+  }
+
+  if (user == 1)
+  {
+    lua_pushstring (L, message);
+    return 1;
+  }
+  else
+  {
+    lua_pushfstring (L, "Internal error (run): %s", message);
+    luaL_traceback (L, L, lua_tostring (L, -1), level);
+    return 1;
+  }
 }

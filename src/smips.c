@@ -25,30 +25,39 @@
 
 static int checkarg (lua_State* L)
 {
-  const char* type = NULL;
   const char* got = NULL;
+  const char* type = NULL;
   int top = lua_gettop (L);
   int i, argn, result = 0;
+  const int level = 2;
 
   argn = luaL_checkinteger (L, 1);
 
   if (lua_isnone (L, 2))
     luaL_argerror (L, 2, "expected something");
   else
-  if (luaL_getmetafield (L, 2, "__name") == LUA_TNIL)
-    got = luaL_typename (L, 2);
-  else
-    got = lua_tostring (L, -1);
+  {
+    if (luaL_getmetafield (L, 2, "__name"))
+      got = lua_tostring (L, -1);
+    else
+      lua_pushstring (L, got = luaL_typename (L, 2));
+
+    lua_replace (L, 2);
+  }
 
   luaL_Buffer B;
   luaL_buffinit (L, & B);
-  luaL_addstring (& B, "expected");
+
+  luaL_where (L, level);
+  luaL_addvalue (& B);
+  lua_pushfstring (L, "bad argument #%i (expected", argn);
+  luaL_addvalue (& B);
 
   for (i = 3; i < (top + 1); i++)
   {
     type = luaL_checkstring (L, i);
 
-    if (!g_strcmp0 (got, type))
+    if (lua_rawequal (L, 2, i))
     {
       result = TRUE;
       break;
@@ -75,46 +84,13 @@ static int checkarg (lua_State* L)
   }
   else
   {
-    lua_pushfstring (L, ", got %s", got);
+    lua_pushfstring (L, ", got %s)", got);
     luaL_addvalue (& B);
     luaL_pushresult (& B);
 
-    type = lua_tostring (L, -1);
-    luaL_argerror (L, argn, type);
+    _smips_log_error (L, level, 0);
   }
 return 0;
-}
-
-static int report (lua_State* L)
-{
-  const char* message;
-  const char* typename;
-
-  if ((message = lua_tostring (L, 1)) != NULL)
-    message = lua_pushfstring (L, "Internal error (run): %s", message);
-  else
-  {
-    if (luaL_callmeta (L, 1, "__tostring") && lua_type (L, -1) == LUA_TSTRING)
-    {
-      message = lua_tostring (L, -1);
-      message = lua_pushfstring (L, "Internal error (run): %s", message);
-    }
-    else
-    {
-      if (!_smips_islogerror (L, 1))
-      {
-        typename = lua_typename (L, lua_type (L, 1));
-        message = lua_pushfstring (L, "(error object is a %s value)", typename);
-        message = lua_pushfstring (L, "Internal error (run): %s", message);
-      }
-      else
-      {
-        lua_getfield (L, 1, "message");
-        return 1;
-      }
-    }
-  }
-return (luaL_traceback (L, L, message, 1), 1);
 }
 
 static int pmain (lua_State* L)
@@ -173,7 +149,7 @@ static int pmain (lua_State* L)
 #endif // LUA_VERSION_NUM
 
   g_assert (lua_gettop (L) == 0);
-  lua_pushcfunction (L, report);
+  lua_pushcfunction (L, _smips_msgh);
   _smips_load (L, GRESROOT "/smips.luc");
 
   for (i = 1; i < argc; i++)
@@ -241,7 +217,7 @@ int main (int argc, char* argv[])
         lua_pop (L, 1);
       goto out;
     case LUA_ERRRUN:
-      g_warning (lua_tostring (L, -1));
+      g_printerr ("%s\r\n", lua_tostring (L, -1));
         lua_pop (L, 1);
       goto out;
 

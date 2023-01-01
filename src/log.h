@@ -26,9 +26,10 @@
 extern "C" {
 #endif // __cplusplus
 
-G_GNUC_INTERNAL int _smips_log_error (lua_State* L, const gchar* error) G_GNUC_NORETURN;
-G_GNUC_INTERNAL int _smips_log_gerror (lua_State* L, GError* error) G_GNUC_NORETURN;
-G_GNUC_INTERNAL int _smips_islogerror (lua_State* L, int idx);
+G_GNUC_INTERNAL int _smips_msgh (lua_State* L);
+G_GNUC_INTERNAL int _smips_log_error (lua_State* L, int level, int user) G_GNUC_NORETURN;
+G_GNUC_INTERNAL int _smips_log_lerror (lua_State* L, int user, const gchar* message) G_GNUC_NORETURN;
+G_GNUC_INTERNAL int _smips_log_gerror (lua_State* L, int user, GError* error) G_GNUC_NORETURN;
 
 #if __cplusplus
 }

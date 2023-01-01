@@ -97,11 +97,18 @@ do
     local line
 
     local function compe (...)
-      if (select ('#', ...) > 1) then
-        log.error ('%i: %s', linen, string.format (...))
-      else
-        log.error ('%i: %s', linen, (...))
+
+      local function collect (...)
+        if (select ('#', ...) > 1) then
+          return string.format (...)
+        else
+          return (...)
+        end
       end
+
+      local message1 = collect (...)
+      local message2 = collect ('%i: %s', message1)
+      log.error (message2)
     end
 
     local function assertreg (value)
@@ -130,7 +137,7 @@ do
       inst.rt = rt
       inst.rs = rs
       inst.rd = rd
-      unit.add_inst (inst)
+      unit:add_inst (inst)
     end
 
     local function put_iinst (desc, rt, rs, cs)
@@ -139,14 +146,14 @@ do
       inst.rt = rt
       inst.rs = rs
       inst.cs = cs
-      unit.add_inst (inst)
+      unit:add_inst (inst)
     end
 
     local function put_jinst (desc, cs)
       local inst
       inst = insts.new (desc.opcode):typej ()
       inst.cs = cs
-      unit.add_inst (inst)
+      unit:add_inst (inst)
     end
 
     local function feed_tag (tagname)

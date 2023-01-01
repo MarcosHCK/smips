@@ -145,16 +145,16 @@ static int _parse (lua_State* L)
   else
   {
     if (tmperr->domain != G_OPTION_ERROR)
-      _smips_log_gerror (L, tmperr);
+      _smips_log_gerror (L, 0, tmperr);
     else
     {
       if (tmperr->code == G_OPTION_ERROR_FAILED)
-        _smips_log_gerror (L, tmperr);
+        _smips_log_gerror (L, 0, tmperr);
       else
       {
         lua_pushstring (L, tmperr->message);
         g_error_free (tmperr);
-        _smips_log_error (L, lua_tostring (L, -1));
+        _smips_log_lerror (L, 1, lua_tostring (L, -1));
       }
     }
   }

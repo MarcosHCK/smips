@@ -95,7 +95,7 @@ static const char* search (lua_State* L, const char* name)
     else
     {
       if (!g_error_matches (tmperr, G_RESOURCE_ERROR, G_RESOURCE_ERROR_NOT_FOUND))
-        _smips_log_gerror (L, tmperr);
+        _smips_log_gerror (L, 0, tmperr);
       else
       {
         g_clear_error (& tmperr);
@@ -134,7 +134,7 @@ static const char* _reader (lua_State* L, void* ud, size_t* size)
   *size = (size_t) read;
 
   if (G_UNLIKELY (tmperr != NULL))
-    _smips_log_gerror (L, tmperr);
+    _smips_log_gerror (L, 0, tmperr);
 return (char*) buffer;
 }
 
