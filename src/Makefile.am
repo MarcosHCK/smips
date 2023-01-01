@@ -31,6 +31,7 @@ noinst_PROGRAMS=\
 	$(VOID)
 
 noinst_HEADERS=\
+	insts.h \
 	load.h \
 	log.h \
 	option.h \
@@ -60,6 +61,8 @@ luac_LDFLAGS=\
 
 smips_SOURCES=\
 	bundle.c \
+	inst.c \
+	insts.c \
 	load.c \
 	log.c \
 	option.c \

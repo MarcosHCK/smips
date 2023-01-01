@@ -21,7 +21,7 @@ do
   local mt =
   {
     __index = vector,
-    __name = 'vector',
+    __name = 'SmipsVector',
   }
 
   function vector.new ()
@@ -30,24 +30,24 @@ do
   end
 
   function vector.length (self)
-    checkArg (0, self, 'vector')
+    checkArg (0, self, 'SmipsVector')
     return #self
   end
 
   function vector.append (self, val)
-    checkArg (0, self, 'vector')
+    checkArg (0, self, 'SmipsVector')
     table.insert (self, val)
     return val
   end
 
   function vector.prepend (self, val)
-    checkArg (0, self, 'vector')
+    checkArg (0, self, 'SmipsVector')
     table.insert (self, 1, val)
     return val
   end
 
   function vector.last (self)
-    checkArg (0, self, 'vector')
+    checkArg (0, self, 'SmipsVector')
     return self [#self]
   end
 return vector

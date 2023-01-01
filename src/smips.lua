@@ -15,6 +15,7 @@
 --  You should have received a copy of the GNU General Public License
 --  along with SMIPS Assembler.  If not, see <http://www.gnu.org/licenses/>.
 ]]
+local insts = require ('insts')
 local log = require ('log')
 local opt = require ('options')
 local regs = require ('regs')
@@ -123,6 +124,31 @@ do
     return value
     end
 
+    local function put_rinst (desc, rt, rs, rd)
+      local inst
+      inst = insts.new (desc.opcode):typer ()
+      inst.rt = rt
+      inst.rs = rs
+      inst.rd = rd
+      unit.add_inst (inst)
+    end
+
+    local function put_iinst (desc, rt, rs, cs)
+      local inst
+      inst = insts.new (desc.opcode):typei ()
+      inst.rt = rt
+      inst.rs = rs
+      inst.cs = cs
+      unit.add_inst (inst)
+    end
+
+    local function put_jinst (desc, cs)
+      local inst
+      inst = insts.new (desc.opcode):typej ()
+      inst.cs = cs
+      unit.add_inst (inst)
+    end
+
     local function feed_tag (tagname)
       unit:add_tag (tagname)
     end
@@ -147,15 +173,18 @@ do
         local rd = takes.rd and assertreg (getnext (...)) or 0
         local rs = takes.rs and assertreg (getnext (...)) or 0
         local rt = takes.rt and assertreg (getnext (...)) or 0
+        put_rinst (desc, rt, rs, rd)
       elseif (i_insts [inst] ~= nil) then
         local desc = i_insts [inst]
         local takes = desc.takes
         local rt = takes.rt and assertreg (getnext (...)) or 0
         local rs = takes.rs and assertreg (getnext (...)) or 0
         local cs = assertcs (getnext (...))
+        put_iinst (desc, rt, rs, cs)
       elseif (j_insts [inst] ~= nil) then
         local desc = j_insts [inst]
         local cs = assertcs (getnext (...))
+        put_jinst (desc, cs)
       end
     end
 

@@ -29,6 +29,6 @@ smips
 smips.exe
 
 bundle.c
-bundle.h
+inst.c
 option.c
 *.luc
