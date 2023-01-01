@@ -27,6 +27,7 @@ Author: MarcosHCK
       Lua sources
     -->
 
+    <file>regs.luc</file>
     <file>smips.luc</file>
     <file>unit.luc</file>
     <file>vector.luc</file>

@@ -17,6 +17,7 @@
 ]]
 local log = require ('log')
 local opt = require ('options')
+local regs = require ('regs')
 local units = require ('unit')
 
 do
@@ -72,6 +73,24 @@ do
   {
   }
 
+  local function breakargs (args)
+    local arg, left = args:match ('^([^,]+)(.*)$')
+    if (arg) then
+      left = left:gsub ('^,', '')
+      return arg, breakargs (left)
+    end
+  end
+
+  local function getreg (value)
+    local reg = value:match ('^%$([0-9a-z]+)$')
+
+    if (not reg) then
+      return nil
+    else
+      return regs [reg]
+    end
+  end
+
   local function feed (unit)
     local linen = 0
     local line
@@ -84,12 +103,24 @@ do
       end
     end
 
-    local function breakargs (args)
-      local arg, left = args:match ('^([^,]+)(.*)$')
-      if (arg) then
-        left = left:gsub ('^,', '')
-        return arg, breakargs (left)
+    local function assertreg (value)
+      if (value == nil) then
+        compe ('Expected register name')
       end
+
+      local reg = getreg (value)
+
+      if (not reg) then
+        compe ('Unknown register \'%s\'', value)
+      end
+    return reg
+    end
+
+    local function assertcs (value)
+      if (value == nil) then
+        compe ('Expected expression')
+      end
+    return value
     end
 
     local function feed_tag (tagname)
@@ -97,6 +128,35 @@ do
     end
 
     local function feed_inst (inst, ...)
+      local nexti = 0
+
+      local function getnext (...)
+        nexti = nexti + 1
+        local arg = select (nexti, ...)
+        if (arg) then
+          arg = arg:gsub ('^%s*', '')
+          arg = arg:gsub ('%s*$', '')
+          return arg
+        end
+      end
+
+      if (macros [inst] ~= nil) then
+      elseif (r_insts [inst] ~= nil) then
+        local desc = r_insts [inst]
+        local takes = desc.takes
+        local rd = takes.rd and assertreg (getnext (...)) or 0
+        local rs = takes.rs and assertreg (getnext (...)) or 0
+        local rt = takes.rt and assertreg (getnext (...)) or 0
+      elseif (i_insts [inst] ~= nil) then
+        local desc = i_insts [inst]
+        local takes = desc.takes
+        local rt = takes.rt and assertreg (getnext (...)) or 0
+        local rs = takes.rs and assertreg (getnext (...)) or 0
+        local cs = assertcs (getnext (...))
+      elseif (j_insts [inst] ~= nil) then
+        local desc = j_insts [inst]
+        local cs = assertcs (getnext (...))
+      end
     end
 
     local function feed_stat (stat)
