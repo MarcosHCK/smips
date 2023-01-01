@@ -15,7 +15,6 @@
 --  You should have received a copy of the GNU General Public License
 --  along with SMIPS Assembler.  If not, see <http://www.gnu.org/licenses/>.
 ]]
-local insts = require ('insts')
 local vector = require ('vector')
 local unit = {}
 
@@ -29,26 +28,32 @@ do
   function unit.new ()
     local block = vector.new ()
     local st = { block = block, tags = { }, }
+      block:append ({ size = 0 })
     return setmetatable (st, mt)
   end
 
-  function unit.getpos (self, tagname)
+  function unit.add_data (self, data)
     checkArg (0, self, 'SmipsUnit')
-    checkArg (1, tagname, 'nil', 'string')
+    checkArg (1, data, 'string', 'number')
 
-    if (not tagname) then
-      local block = self.block
-      if (block:length () == 0) then
-        return 0
-      else
-        local last = block:last ()
-        local offset = last.offset
-        local size = last.size
-        return offset + size
-      end
+    if (type (data) == 'string') then
+      self.block:append ({ data = data, })
     else
-      return self.tags [tagname]
+      local size
+      size = #data
+      size = size + (4 - (size % 4))
+      self.block:append ({ size = size, })
     end
+  end
+
+  function unit.add_inst (self, inst)
+    checkArg (0, self, 'SmipsUnit')
+    checkArg (1, inst, 'SmipsInst')
+
+    self.block:append ({
+        size = 4,
+        inst = inst,
+      })
   end
 
   function unit.add_tag (self, tagname)
@@ -58,17 +63,8 @@ do
     if (self.tags [tagname] ~= nil) then
       error (('Redefined tag %s'):format (tagname))
     else
-      local pos = self:getpos ()
-      self.tags [tagname] = pos
+      self.tags [tagname] = self.block:length ()
     end
-  end
-
-  function unit.add_inst (self, inst)
-    checkArg (0, self, 'SmipsUnit')
-    checkArg (1, inst, 'SmipsInst')
-    inst.offset = self:getpos ()
-    inst.size = 4
-    self.block:append (inst)
   end
 return unit
 end

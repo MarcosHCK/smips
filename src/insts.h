@@ -32,6 +32,7 @@ struct _SmipsInst
   int type;
   guint opcode;
   guint constant;
+  guint shamt;
   guint func;
   guint rd, rs, rt;
   gchar* cs;

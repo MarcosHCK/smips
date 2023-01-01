@@ -30,6 +30,7 @@ struct _SmipsInstIndex {};
 %%
 opcode, LUA_TNUMBER, R_INST | I_INST | J_INST, G_STRUCT_OFFSET (SmipsInst, opcode)
 constant, LUA_TNUMBER, I_INST | J_INST, G_STRUCT_OFFSET (SmipsInst, constant)
+shamt, LUA_TNUMBER, R_INST, G_STRUCT_OFFSET (SmipsInst, shamt)
 func, LUA_TNUMBER, R_INST, G_STRUCT_OFFSET (SmipsInst, func)
 rd, LUA_TNUMBER, R_INST, G_STRUCT_OFFSET (SmipsInst, rd)
 rs, LUA_TNUMBER, R_INST | I_INST, G_STRUCT_OFFSET (SmipsInst, rs)

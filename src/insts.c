@@ -105,7 +105,7 @@ static int new (lua_State* L)
   SmipsInst* self = NULL;
   guint opcode = 0;
 
-  opcode = luaL_checkinteger (L, 1);
+  opcode = luaL_optinteger (L, 1, opcode);
   self = lua_newuserdata (L, sizeof (SmipsInst));
 
 #if LUA_VERSION_NUM >= 502
@@ -115,7 +115,7 @@ static int new (lua_State* L)
   lua_setmetatable (L, -2);
 #endif // LUA_VERSION_NUM
   memset (self, 0, sizeof (SmipsInst));
-  self->opcode = opcode & 0x3f;
+  self->opcode = opcode;
   self->type = R_INST | I_INST | J_INST; /* polymorphic */
 return 1;
 }
@@ -123,6 +123,8 @@ return 1;
 #define typex(c,n) \
   static int type##c (lua_State* L) \
   { \
+    if (lua_gettop (L) == 0) \
+      new (L); \
     SmipsInst* self = luaL_checkudata (L, 1, META); \
     const guint type = ((n)); \
       if ((type & (~MASK_INST)) != 0) \
@@ -138,6 +140,43 @@ typex (r, R_INST)
 typex (i, I_INST)
 typex (j, J_INST)
 #undef typex
+
+static int encode (lua_State* L)
+{
+  SmipsInst* self = luaL_checkudata (L, 1, META);
+  guint inst = 0;
+
+  switch (self->type)
+  {
+    case MASK_INST:
+      luaL_error (L, "Please specify instruction type first");
+      break;
+
+    case R_INST:
+      inst |= (self->func & 0x3f) << 0;
+      inst |= (self->shamt & 0x1f) << 6;
+      inst |= (self->rd & 0x1f) << 11;
+      G_GNUC_FALLTHROUGH;
+    case I_INST:
+      inst |= (self->rt & 0x1f) << 16;
+      inst |= (self->rs & 0x1f) << 21;
+      G_GNUC_FALLTHROUGH;
+    case J_INST:
+      inst |= (self->opcode & 0x3f) << 26;
+      break;
+  }
+
+  switch (self->type)
+  {
+    case I_INST:
+      inst |= (self->constant & 0xffff);
+      break;
+    case J_INST:
+      inst |= (self->constant & 0x3ffffff);
+      break;
+  }
+return (lua_pushinteger (L, inst), 1);
+}
 
 G_MODULE_EXPORT
 int luaopen_insts (lua_State* L)
@@ -166,5 +205,7 @@ int luaopen_insts (lua_State* L)
   lua_setfield (L, -2, "typei");
   lua_pushcfunction (L, typej);
   lua_setfield (L, -2, "typej");
+  lua_pushcfunction (L, encode);
+  lua_setfield (L, -2, "encode");
 return 1;
 }

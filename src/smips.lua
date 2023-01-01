@@ -50,28 +50,24 @@ do
 
   local i_insts =
   {
-    addi = { opcode = 8, takes = { rt = true, rs = true, }, },
-    slti = { opcode = 10, takes = { rt = true, rs = true, }, },
-    sltiu = { opcode = 11, takes = { rt = true, rs = true, }, },
-    andi = { opcode = 12, takes = { rt = true, rs = true, }, },
-    ori = { opcode = 13, takes = { rt = true, rs = true, }, },
-    xori = { opcode = 14, takes = { rt = true, rs = true, }, },
-    lw = { opcode = 35, takes = { rt = true, rs = false, }, address = true, },
-    sw = { opcode = 43, takes = { rt = true, rs = false, }, address = true, },
-    beq = { opcode = 4, takes = { rt = true, rs = true, }, tagable = 'r', },
-    bne = { opcode = 5, takes = { rt = true, rs = true, }, tagable = 'r', },
-    blez = { opcode = 6, takes = { rt = false, rs = true, }, tagable = 'r', },
-    bgtz = { opcode = 7, takes = { rt = false, rs = true, }, tagable = 'r', },
-    bltz = { opcode = 1, takes = { rt = false, rs = true, }, tagable = 'r', },
+    addi = { opcode = 8, takes = { rt = true, rs = true, cs = true, }, },
+    slti = { opcode = 10, takes = { rt = true, rs = true, cs = true, }, },
+    sltiu = { opcode = 11, takes = { rt = true, rs = true, cs = true, }, },
+    andi = { opcode = 12, takes = { rt = true, rs = true, cs = true, }, },
+    ori = { opcode = 13, takes = { rt = true, rs = true, cs = true, }, },
+    xori = { opcode = 14, takes = { rt = true, rs = true, cs = true, }, },
+    lw = { opcode = 35, takes = { rt = true, rs = false, cs = true, }, address = true, },
+    sw = { opcode = 43, takes = { rt = true, rs = false, cs = true, }, address = true, },
+    beq = { opcode = 4, takes = { rt = true, rs = true, cs = true, }, tagable = 'r', },
+    bne = { opcode = 5, takes = { rt = true, rs = true, cs = true, }, tagable = 'r', },
+    blez = { opcode = 6, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
+    bgtz = { opcode = 7, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
+    bltz = { opcode = 1, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
   }
 
   local j_insts =
   {
-    j = { opcode = 2, tagable = 'a', },
-  }
-
-  local macros =
-  {
+    j = { opcode = 2, takes = { cs = true, }, tagable = 'a', },
   }
 
   local function breakargs (args)
@@ -92,7 +88,13 @@ do
     end
   end
 
-  local function feed (unit)
+  local anons = 0
+  local function anontag ()
+    anons = anons + 1
+  return ('@anon%i'):format (anons)
+  end
+
+  local function feed (unit, source)
     local linen = 0
     local line
 
@@ -106,9 +108,22 @@ do
         end
       end
 
-      local message1 = collect (...)
-      local message2 = collect ('%i: %s', message1)
-      log.error (message2)
+      local literal = collect (...)
+      local where = ('%s: %i'):format (source, linen)
+      log.error (collect ('%s: %s', where, literal))
+    end
+
+    local function argiter ()
+      local nexti = 0
+      return function (...)
+        nexti = nexti + 1
+        local arg = select (nexti, ...)
+        if (arg) then
+          arg = arg:gsub ('^%s*', '')
+          arg = arg:gsub ('%s*$', '')
+          return arg
+        end
+      end
     end
 
     local function assertreg (value)
@@ -131,18 +146,29 @@ do
     return value
     end
 
+    local function feed_tag (tagname)
+      unit:add_tag (tagname)
+    end
+
+    local function feed_directive (name, ...)
+      error ('Unimplemented')
+    end
+
     local function put_rinst (desc, rt, rs, rd)
       local inst
-      inst = insts.new (desc.opcode):typer ()
+      inst = insts.new (desc.opcode)
+      inst = inst:typer ()
       inst.rt = rt
       inst.rs = rs
       inst.rd = rd
+      inst.func = desc.func
       unit:add_inst (inst)
     end
 
     local function put_iinst (desc, rt, rs, cs)
       local inst
-      inst = insts.new (desc.opcode):typei ()
+      inst = insts.new (desc.opcode)
+      inst = inst:typei ()
       inst.rt = rt
       inst.rs = rs
       inst.cs = cs
@@ -151,29 +177,40 @@ do
 
     local function put_jinst (desc, cs)
       local inst
-      inst = insts.new (desc.opcode):typej ()
+      inst = insts.new (desc.opcode)
+      inst = inst:typej ()
       inst.cs = cs
       unit:add_inst (inst)
     end
 
-    local function feed_tag (tagname)
-      unit:add_tag (tagname)
-    end
+    local macros =
+    {
+      jal = function (getnext, ...)
+        local return_ = anontag ()
+        local target_ = assertcs (getnext (...))
+
+        put_iinst (i_insts.addi, regs ['ra'], 0, return_)
+        put_jinst (j_insts.j, target_)
+        unit:add_tag (return_)
+      end,
+      move = function (getnext, ...)
+        local rt = assertreg (getnext (...))
+        local arg = getnext (...)
+        local rs = getreg (arg)
+
+        if (rs ~= nil) then
+          put_iinst (i_insts.addi, rt, rs, 0)
+        else
+          put_iinst (i_insts.addi, rt, 0, arg)
+        end
+      end,
+    }
 
     local function feed_inst (inst, ...)
-      local nexti = 0
-
-      local function getnext (...)
-        nexti = nexti + 1
-        local arg = select (nexti, ...)
-        if (arg) then
-          arg = arg:gsub ('^%s*', '')
-          arg = arg:gsub ('%s*$', '')
-          return arg
-        end
-      end
+      local getnext = argiter ()
 
       if (macros [inst] ~= nil) then
+        macros [inst] (getnext, ...)
       elseif (r_insts [inst] ~= nil) then
         local desc = r_insts [inst]
         local takes = desc.takes
@@ -186,36 +223,57 @@ do
         local takes = desc.takes
         local rt = takes.rt and assertreg (getnext (...)) or 0
         local rs = takes.rs and assertreg (getnext (...)) or 0
-        local cs = assertcs (getnext (...))
+        local cs = takes.cs and assertcs (getnext (...)) or '0'
         put_iinst (desc, rt, rs, cs)
       elseif (j_insts [inst] ~= nil) then
         local desc = j_insts [inst]
-        local cs = assertcs (getnext (...))
+        local takes = desc.takes
+        local cs = takes.cs and assertcs (getnext (...)) or '0'
         put_jinst (desc, cs)
+      else
+        compe ('Unknown instruction \'%s\'', inst)
+      end
+
+      if (getnext (...) ~= nil) then
+        compe ('Junk at end of instruction')
       end
     end
 
     local function feed_stat (stat)
       local tag = stat:match ('^(%.?[a-zA-Z_][a-zA-Z_0-9]*):$')
       if (tag ~= nil) then
-        feed_tag (tag)
-      else
-        local inst, left = stat:match ('^([a-z]+)(.*)$')
-        if (not inst) then
-          compe ('Malformed line \'%s\'', line)
+        return feed_tag (tag)
+      end
+
+      local name, left = stat:match ('^(%.[a-z]+)(.*)$')
+      if (name ~= nil) then
+        if (#left == 0) then
+          return feed_directive (name)
         else
-          if (#left == 0) then
-            feed_inst (inst)
+          local args = left:match ('^%s+(.*)$')
+          if (not args) then
+            compe ('Malformed line \'%s\'', line)
           else
-            local args = left:match ('^%s+(.*)$')
-            if (not args) then
-              compe ('Malformed line \'%s\'', line)
-            else
-              feed_inst (inst, breakargs (args))
-            end
+            return feed_directive (name, breakargs (args))
           end
         end
       end
+
+      local inst, left = stat:match ('^([a-z]+)(.*)$')
+      if (inst ~= nil) then
+        if (#left == 0) then
+          return feed_inst (inst)
+        else
+          local args = left:match ('^%s+(.*)$')
+          if (not args) then
+            compe ('Malformed line \'%s\'', line)
+          else
+            return feed_inst (inst, breakargs (args))
+          end
+        end
+      end
+
+      compe ('Malformed line \'%s\'', line)
     end
 
     local function feed_rstat (stat)
@@ -251,11 +309,16 @@ do
 
   local function main (...)
     local files = {...}
+    local output = opt:getopt ('0')
     local unit = units.new ()
 
     for _, file in ipairs (files) do
-      io.input (assert (io.open (file, 'r')))
-      feed (unit)
+      if (file == '-') then
+        feed (unit, '(stdin)')
+      else
+        io.input (assert (io.open (file, 'r')))
+        feed (unit, file)
+      end
     end
   end
 
