@@ -72,6 +72,7 @@ void _smips_tag_unref (gpointer ptag)
       g_clear_pointer (&tag->left, _smips_tag_unref);
       g_clear_pointer (&tag->right, _smips_tag_unref);
     }
+
     g_print ("unref 0x%x\r\n", (guint) (guintptr) ptag);
     g_slice_free (SmipsTag, ptag);
   }

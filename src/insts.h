@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <lua.h>
 #include <lauxlib.h>
+#include <luacmpt.h>
 
 typedef struct _SmipsInst SmipsInst;
 

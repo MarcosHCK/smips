@@ -69,9 +69,9 @@ do
     if (self.tags [tagname] ~= nil) then
       error (('Redefined tag %s'):format (tagname))
     else
-      local value = self.block:length ()
-      local tag = tags.rel (value)
-      self.tags [tagname] = tag
+      --local value = self.block:length ()
+      --local tag = tags.rel (value)
+      --self.tags [tagname] = tag
     end
   end
 return unit

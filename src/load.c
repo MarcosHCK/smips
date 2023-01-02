@@ -20,14 +20,6 @@
 #include <load.h>
 #include <log.h>
 
-#ifndef LUA_PATHSEP
-# ifdef LUA_PATH_SEP
-#   define LUA_PATHSEP LUA_PATH_SEP
-# else
-#   error Fix this!
-# endif // LUA_PATH_SEP
-#endif // LUA_PATHSEP
-
 #define _g_object_unref0(var) ((var == NULL) ? NULL : (var = (g_object_unref (var), NULL)))
 #define _g_free0(var) ((var == NULL) ? NULL : (var = (g_free (var), NULL)))
 typedef struct _Reader Reader;
@@ -45,13 +37,13 @@ static const char* nexttemplate (lua_State* L, const char* path)
 {
   const char* l;
 
-  while (*path == *LUA_PATHSEP)
+  while (*path == *LUA_PATH_SEP)
     path++;
 
   if (*path == '\0')
     return NULL;
 
-  l = strchr (path, *LUA_PATHSEP);
+  l = strchr (path, *LUA_PATH_SEP);
   if (l == NULL)
     l = path + strlen(path);
 
@@ -72,7 +64,7 @@ static const char* search (lua_State* L, const char* name)
   if (g_once_init_enter (&rpath))
   {
     const char* __path = GRESROOT "/" LUA_PATH_MARK ".lua"
-            LUA_PATHSEP  GRESROOT "/" LUA_PATH_MARK ".luc";
+           LUA_PATH_SEP  GRESROOT "/" LUA_PATH_MARK ".luc";
     g_once_init_leave (&rpath, __path);
   }
 
@@ -170,7 +162,9 @@ int _smips_sym_loader (lua_State* L)
 
   modname = luaL_checkstring (L, 1);
   modname = luaL_gsub (L, modname, ".", "_");
+#if (LUA_VERSION_NUM < 502) || defined(LUA_ISJIT)
   modname = ignore (L, modname, LUA_IGMARK);
+#endif // LUA_VERSION_NUM
   symname = lua_pushfstring (L, "luaopen_%s", modname);
   module = g_module_open (NULL, G_MODULE_BIND_LAZY);
 
@@ -211,7 +205,13 @@ int _smips_load (lua_State* L, const gchar* path)
 
   basename = g_path_get_basename (path);
   chunkname = g_strconcat ("=", basename, NULL);
-  result = lua_loadx (L, _reader, &reader, chunkname, "bt");
+#if defined(LUA_ISJIT)
+  result = lua_loadx (L, _reader, &reader, chunkname, "b");
+#elif LUA_VERSION_NUM >= 502
+  result = lua_load (L, _reader, &reader, chunkname, "b");
+#else // LUA_VERSION_NUM < 502
+  result = lua_load (L, _reader, &reader, chunkname);
+#endif // LUA_VERSION_NUM
 
   _g_object_unref0 (reader.stream);
   _g_free0 (reader.buffer);

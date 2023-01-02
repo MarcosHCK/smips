@@ -30,13 +30,17 @@ noinst_PROGRAMS=\
 	luac \
 	$(VOID)
 
+noinst_LTLIBRARIES=\
+	libluacmpt.la \
+	$(VOID)
+
 noinst_HEADERS=\
 	insts.h \
 	load.h \
 	log.h \
+	luacmpt.h \
 	option.h \
 	options.h \
-	smips.h \
 	tag.h \
 	tags.h \
 	$(VOID)
@@ -54,6 +58,9 @@ luac_CFLAGS=\
 	$(GLIB_CFLAGS) \
 	$(LUA_CFLAGS) \
 	-D__SMIPS_SOURCE__ \
+	$(VOID)
+luac_LDADD=\
+	libluacmpt.la \
 	$(VOID)
 luac_LDFLAGS=\
 	$(GIO_LIBS) \
@@ -80,13 +87,23 @@ smips_CFLAGS=\
 	$(LUA_CFLAGS) \
 	-D__SMIPS_SOURCE__ \
 	$(VOID)
-smips_DEPENDENCIES=\
-	luac \
+smips_LDADD=\
+	libluacmpt.la \
 	$(VOID)
 smips_LDFLAGS=\
 	$(GIO_LIBS) \
 	$(GLIB_LIBS) \
 	$(GMODULE_LIBS) \
+	$(LUA_LIBS) \
+	$(VOID)
+
+libluacmpt_la_SOURCES=\
+	luacmpt.c \
+	$(VOID)
+libluacmpt_la_CFLAGS=\
+	$(LUA_CFLAGS) \
+	$(VOID)
+libluacmpt_la_LIBADD=\
 	$(LUA_LIBS) \
 	$(VOID)
 
@@ -99,7 +116,7 @@ smips_LUCS=\
 
 bundle.c: $(smips_LUCS)
 bundle.h: $(smips_LUCS)
-smips.luc: luac
+$(smips_LUCS): luac
 
 #
 # Extensions

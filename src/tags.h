@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <lua.h>
 #include <lauxlib.h>
+#include <luacmpt.h>
 
 typedef struct _SmipsTag SmipsTag;
 typedef struct _SmipsTagOp SmipsTagOp;
@@ -32,7 +33,7 @@ enum
 {
   TAG_VALUE = 1,
   TAG_REL = (1 << 1),
-  TAG_SUM = (1 << 1),
+  TAG_ADD = (1 << 1),
   TAG_SUB = (1 << 2),
   TAG_MUL = (1 << 3),
   TAG_DIV = (1 << 4),
@@ -41,7 +42,7 @@ enum
   TAG_UNM = (1 << 7),
 
   TAG_VALUE_MASK = (TAG_REL),
-  TAG_OP_MASK = (TAG_SUM | TAG_SUB | TAG_MUL| TAG_DIV | TAG_IDIV | TAG_MOD| TAG_UNM),
+  TAG_OP_MASK = (TAG_ADD | TAG_SUB | TAG_MUL| TAG_DIV | TAG_IDIV | TAG_MOD| TAG_UNM),
 };
 
 struct _SmipsTag

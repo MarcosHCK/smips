@@ -15,18 +15,37 @@
  * along with SMIPS Assembler. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef __SMIPS__
-#define __SMIPS__ 1
-#include <glib.h>
+#ifndef __SMIPS_LUACMPT__
+#define __SMIPS_LUACMPT__ 1
 #include <lua.h>
-#include <lualib.h>
 #include <lauxlib.h>
 
-G_BEGIN_DECLS
+#ifndef LUA_OK
+# define LUA_OK (0)
+#endif // LUA_OK
+#ifndef LUA_PATH_SEP
+# ifdef LUA_PATHSEP
+#   define LUA_PATH_SEP LUA_PATHSEP
+# else
+#   define LUA_PATH_SEP ";"
+# endif // LUA_PATH_SEP
+#endif // LUA_PATHSEP
+#ifndef LUA_PATH_MARK
+# define LUA_PATH_MARK "?"
+#endif // LUA_PATHSEP
 
-G_GNUC_INTERNAL int gerror (lua_State* L, const char* loc, GError* error) G_GNUC_NORETURN;
-#define gerror(error) (gerror) (L, G_STRLOC, ((error)))
+#if __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-G_END_DECLS
+#if LUA_VERSION_NUM < 502
+# ifndef LUA_ISJIT
+int luaL_testudata (lua_State *L, int idx, const char *tname);
+# endif // LUA_ISJIT
+#endif // LUA_VERSION_NUM
 
-#endif // __SMIPS__
+#if __cplusplus
+}
+#endif // __cplusplus
+
+#endif // __SMIPS_LUACMPT__

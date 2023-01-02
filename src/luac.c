@@ -21,6 +21,10 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#ifndef LUA_OK
+#define LUA_OK (0)
+#endif // LUA_OK
+
 struct _Reader
 {
   GInputStream* stream;
@@ -91,8 +95,13 @@ int load (lua_State* L, const gchar* filename)
     chunkname = g_strconcat ("=", basename, NULL);
     g_clear_pointer (& basename, g_free);
 
-    result =
-    lua_loadx (L, reader, &data, chunkname, "t");
+#if defined(LUA_ISJIT)
+    result = lua_loadx (L, reader, &data, chunkname, "t");
+#elif LUA_VERSION_NUM >= 502
+    result = lua_load (L, reader, &data, chunkname, "t");
+#else // LUA_VERSION_NUM < 502
+    result = lua_load (L, reader, &data, chunkname);
+#endif // LUA_VERSION_NUM
     g_clear_pointer (& data.stream, g_object_unref);
     g_clear_pointer (& chunkname, g_free);
 
@@ -164,8 +173,11 @@ int save (lua_State* L, const gchar* filename)
   }
   else
   {
-    result =
-    lua_dump (L, writer, (void*) stream);
+#if LUA_VERSION_NUM >= 503
+    result = lua_dump (L, writer, (void*) stream, TRUE);
+#else // LUA_VERSION_NUM < 503
+    result = lua_dump (L, writer, (void*) stream);
+#endif // LUA_VERSION_NUM
     g_clear_object (& stream);
 
     switch (result)

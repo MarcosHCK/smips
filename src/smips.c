@@ -16,9 +16,10 @@
  *
  */
 #include <config.h>
+#include <lua.h>
+#include <lualib.h>
 #include <load.h>
 #include <log.h>
-#include <smips.h>
 
 #define _g_object_unref0(var) ((var == NULL) ? NULL : (var = (g_object_unref (var), NULL)))
 #define _g_free0(var) ((var == NULL) ? NULL : (var = (g_free (var), NULL)))
@@ -132,6 +133,7 @@ static int pmain (lua_State* L)
 
 #if LUA_VERSION_NUM >= 502
   lua_pushinteger (L, LUA_RIDX_GLOBALS);
+  lua_gettable (L, LUA_REGISTRYINDEX);
 #else // LUA_VERSION_NUM < 502
   lua_pushvalue (L, LUA_GLOBALSINDEX);
 #endif // LUA_VERSION_NUM

@@ -19,8 +19,8 @@
 #define __SMIPS_LOAD__ 1
 #include <glib.h>
 #include <lua.h>
-#include <lualib.h>
 #include <lauxlib.h>
+#include <luacmpt.h>
 
 #define GRESROOT "/org/hck/smips"
 

@@ -17,7 +17,10 @@
  */
 #ifndef __SMIPS_OPTIONS__
 #define __SMIPS_OPTIONS__ 1
-#include <smips.h>
+#include <glib.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <luacmpt.h>
 
 typedef struct _SmipsOptions SmipsOptions;
 

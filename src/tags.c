@@ -20,6 +20,9 @@
 #include <tag.h>
 #include <tags.h>
 
+static int _abs (lua_State* L);
+static int _rel (lua_State* L);
+
 #define META "SmipsTag"
 #define checktag(L,idx) \
   (G_GNUC_EXTENSION ({ \
@@ -30,42 +33,7 @@
       *(SmipsTag**) __ud; \
     }))
 
-static int __gc (lua_State* L)
-{
-  SmipsTag* self = checktag (L, 1);
-  _smips_tag_unref (self);
-return 0;
-}
-
-#if LUA_VERSION_NUM < 502
-# define luaL_setmetatable(L, name) \
-  G_STMT_START { \
-    lua_getfield (L, LUA_REGISTRYINDEX, name); \
-    lua_setmetatable (L, -2); \
-  } G_STMT_END
-#endif // LUA_VERSION_NUM
-
-#define defnew(name,_type) \
-  static int name (lua_State* L) \
-  { \
-    const gsize sz = sizeof (SmipsTag*); \
-    const guint value = luaL_optinteger (L, 1, 0); \
-    SmipsTag* self = _smips_tag_new_value ((_type), value); \
-    SmipsTag** ref = lua_newuserdata (L, sz); \
-    luaL_setmetatable (L, META); \
-; \
-      *ref = self; \
-  return 1; \
-  }
-#if LUA_VERSION_NUM < 502
-# undef luaL_setmetatable
-#endif // LUA_VERSION_NUM
-
-defnew (_abs, 0);
-defnew (_rel, TAG_VALUE);
-#undef defnew
-
-static int __sum (lua_State* L)
+static int __add (lua_State* L)
 {
   SmipsTag* tag1 = NULL;
   SmipsTag* tag2 = NULL;
@@ -90,13 +58,54 @@ static int __sum (lua_State* L)
   tag1 = checktag (L, 1 + invert);
   tag2 = checktag (L, 2 - invert);
   ref = lua_newuserdata (L, sz);
-  *ref = _smips_tag_new_op (TAG_SUM, tag1, tag2);
+  *ref = _smips_tag_new_op (TAG_ADD, tag1, tag2);
 #if LUA_VERSION_NUM >= 502
   luaL_setmetatable (L, META);
 #else // LUA_VERSION_NUM < 502
   lua_getfield (L, LUA_REGISTRYINDEX, META);
   lua_setmetatable (L, -2);
 #endif // LUA_VERSION_NUM
+return 1;
+}
+
+static int __gc (lua_State* L)
+{
+  SmipsTag* self = checktag (L, 1);
+  _smips_tag_unref (self);
+  g_print ("__gc 0x%x\r\n", (guint) (guintptr) self);
+return 0;
+}
+
+static int _abs (lua_State* L)
+{
+  const int type = 0;
+  const gsize sz = sizeof (SmipsTag*);
+  const guint value = luaL_optinteger (L, 1, 0);
+  SmipsTag* self = _smips_tag_new_value (type, value);
+  SmipsTag** ref = lua_newuserdata (L, sz);
+#if LUA_VERSION_NUM >= 502
+  luaL_setmetatable (L, META);
+#else // LUA_VERSION_NUM
+  lua_getfield (L, LUA_REGISTRYINDEX, META);
+  lua_setmetatable (L, -2);
+#endif // LUA_VERSION_NUM
+    *ref = self;
+return 1;
+}
+static int _rel (lua_State* L)
+{
+  const int type = TAG_REL;
+  const gsize sz = sizeof (SmipsTag*);
+  const guint value = luaL_optinteger (L, 1, 0);
+  SmipsTag* self = _smips_tag_new_value (type, value);
+  SmipsTag** ref = lua_newuserdata (L, sz);
+#if LUA_VERSION_NUM >= 502
+  luaL_setmetatable (L, META);
+#else // LUA_VERSION_NUM
+  lua_getfield (L, LUA_REGISTRYINDEX, META);
+  lua_setmetatable (L, -2);
+#endif // LUA_VERSION_NUM
+    *ref = self;
 return 1;
 }
 
@@ -109,8 +118,8 @@ int luaopen_tags (lua_State* L)
   lua_pushliteral(L, META);
   lua_setfield(L, -2, "__name");
 #endif // LUA_ISJIT
-  lua_pushcfunction (L, __sum);
-  lua_setfield (L, -2, "__sum");
+  lua_pushcfunction (L, __add);
+  lua_setfield (L, -2, "__add");
   lua_pushcfunction (L, __gc);
   lua_setfield (L, -2, "__gc");
   lua_pushvalue (L, -2);
