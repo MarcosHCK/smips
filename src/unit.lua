@@ -26,11 +26,6 @@ do
     __name = 'SmipsUnit',
   }
 
-  local tag1 = tags.rel (1)
-  local tag2 = tags.abs (16)
-  local tag3 = tag1 + tag2
-  local tag4 = tag3 + tag2
-
   function unit.new ()
     local block = vector.new ()
     local st = { block = block, tags = { }, }
@@ -69,9 +64,9 @@ do
     if (self.tags [tagname] ~= nil) then
       error (('Redefined tag %s'):format (tagname))
     else
-      --local value = self.block:length ()
-      --local tag = tags.rel (value)
-      --self.tags [tagname] = tag
+      local value = self.block:length ()
+      local tag = tags.rel (value)
+      self.tags [tagname] = tag
     end
   end
 return unit

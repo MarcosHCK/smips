@@ -29,12 +29,11 @@ struct _SmipsTagIndex
 {
   int name;
   int type;
+  int validin;
   goffset offset;
 };
 
 G_GNUC_INTERNAL void *_smips_tag_new ();
-G_GNUC_INTERNAL void *_smips_tag_new_value (int type, guint value);
-G_GNUC_INTERNAL void *_smips_tag_new_op (int type, SmipsTag* left, SmipsTag* right);
 G_GNUC_INTERNAL void *_smips_tag_ref (gpointer ptag);
 G_GNUC_INTERNAL void _smips_tag_unref (gpointer ptag);
 G_GNUC_INTERNAL const SmipsTagIndex* _smips_tag_index_lookup (const char *str, size_t len);

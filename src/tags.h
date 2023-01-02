@@ -33,13 +33,15 @@ enum
 {
   TAG_VALUE = 1,
   TAG_REL = (1 << 1),
+
+  TAG_OPER = 0,
   TAG_ADD = (1 << 1),
-  TAG_SUB = (1 << 2),
-  TAG_MUL = (1 << 3),
-  TAG_DIV = (1 << 4),
-  TAG_IDIV = (1 << 5),
-  TAG_MOD = (1 << 6),
-  TAG_UNM = (1 << 7),
+  TAG_SUB = (2 << 1),
+  TAG_MUL = (3 << 1),
+  TAG_DIV = (4 << 1),
+  TAG_IDIV = (5 << 1),
+  TAG_MOD = (6 << 1),
+  TAG_UNM = (7 << 1),
 
   TAG_VALUE_MASK = (TAG_REL),
   TAG_OP_MASK = (TAG_ADD | TAG_SUB | TAG_MUL| TAG_DIV | TAG_IDIV | TAG_MOD| TAG_UNM),

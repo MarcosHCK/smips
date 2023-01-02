@@ -28,31 +28,13 @@
 
 struct _SmipsTagIndex {};
 %%
-value, LUA_TNUMBER, G_STRUCT_OFFSET (SmipsTag, value)
+value, LUA_TNUMBER, TAG_VALUE, G_STRUCT_OFFSET (SmipsTag, value)
 %%
 void *_smips_tag_new ()
 {
   SmipsTag* tag = g_slice_new0 (SmipsTag);
   g_atomic_ref_count_init (&tag->refs);
-  g_print ("new 0x%x\r\n", (guint) (guintptr) tag);
 return tag;
-}
-
-void *_smips_tag_new_value (int type, guint value)
-{
-  SmipsTag* tag = _smips_tag_new ();
-    tag->type = (type & TAG_VALUE_MASK) | TAG_VALUE;
-    tag->value = value;
-return (void*) tag;
-}
-
-void *_smips_tag_new_op (int type, SmipsTag* left, SmipsTag* right)
-{
-  SmipsTag* tag = _smips_tag_new ();
-    tag->type = type & TAG_OP_MASK;
-    tag->left = _smips_tag_ref (left);
-    tag->right = _smips_tag_ref (right);
-return (void*) tag;
 }
 
 void *_smips_tag_ref (gpointer ptag)
@@ -67,13 +49,12 @@ void _smips_tag_unref (gpointer ptag)
   SmipsTag* tag = ptag;
   if (g_atomic_ref_count_dec (&tag->refs))
   {
-    if (tag->type & TAG_VALUE == 0)
+    if ((tag->type & TAG_VALUE) == 0)
     {
       g_clear_pointer (&tag->left, _smips_tag_unref);
       g_clear_pointer (&tag->right, _smips_tag_unref);
     }
 
-    g_print ("unref 0x%x\r\n", (guint) (guintptr) ptag);
     g_slice_free (SmipsTag, ptag);
   }
 }
