@@ -15,6 +15,7 @@
 --  You should have received a copy of the GNU General Public License
 --  along with SMIPS Assembler.  If not, see <http://www.gnu.org/licenses/>.
 ]]
+local tags = require ('tags')
 local vector = require ('vector')
 local unit = {}
 
@@ -24,6 +25,11 @@ do
     __index = unit,
     __name = 'SmipsUnit',
   }
+
+  local tag1 = tags.rel (1)
+  local tag2 = tags.abs (16)
+  local tag3 = tag1 + tag2
+  local tag4 = tag3 + tag2
 
   function unit.new ()
     local block = vector.new ()
@@ -63,7 +69,9 @@ do
     if (self.tags [tagname] ~= nil) then
       error (('Redefined tag %s'):format (tagname))
     else
-      self.tags [tagname] = self.block:length ()
+      local value = self.block:length ()
+      local tag = tags.rel (value)
+      self.tags [tagname] = tag
     end
   end
 return unit

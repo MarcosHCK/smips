@@ -31,4 +31,5 @@ smips.exe
 bundle.c
 inst.c
 option.c
+tag.c
 *.luc

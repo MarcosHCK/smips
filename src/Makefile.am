@@ -37,6 +37,8 @@ noinst_HEADERS=\
 	option.h \
 	options.h \
 	smips.h \
+	tag.h \
+	tags.h \
 	$(VOID)
 
 #
@@ -68,6 +70,8 @@ smips_SOURCES=\
 	option.c \
 	options.c \
 	smips.c \
+	tag.c \
+	tags.c \
 	$(VOID)
 smips_CFLAGS=\
 	$(GIO_CFLAGS) \
