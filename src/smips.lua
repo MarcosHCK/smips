@@ -29,7 +29,7 @@ do
     nop = { opcode = 0, func = 0, takes = { rd = false, rt = false, rs = false, }, },
     add = { opcode = 0, func = 32, takes = { rd = true, rt = true, rs = true, }, },
     sub = { opcode = 0, func = 34, takes = { rd = true, rt = true, rs = true, }, },
-    mult = { opcode = 0, func = 24, takes = { rd = false, rt = true, rs = true, }, },
+    mul = { opcode = 0, func = 24, takes = { rd = false, rt = true, rs = true, }, },
     mulu = { opcode = 0, func = 25, takes = { rd = false, rt = true, rs = true, }, },
     div = { opcode = 0, func = 26, takes = { rd = false, rt = true, rs = true, }, },
     divu = { opcode = 0, func = 27, takes = { rd = false, rt = true, rs = true, }, },
@@ -39,11 +39,13 @@ do
     ['or'] = { opcode = 0, func = 37, takes = { rd = true, rt = true, rs = true, }, },
     ['nor'] = { opcode = 0, func = 39, takes = { rd = true, rt = true, rs = true, }, },
     ['xor'] = { opcode = 0, func = 40, takes = { rd = true, rt = true, rs = true, }, },
-    pop = { opcode = 56, func = 0, takes = { rd = true, rt = false, rs = false, }, },
-    push = { opcode = 56, func = 1, takes = { rd = false, rt = false, rs = true, }, },
     jr = { opcode = 0, func = 8, takes = { rd = false, rt = false, rs = true, }, },
     mfhi = { opcode = 0, func = 16, takes = { rd = true, rt = false, rs = false, }, },
     mflo = { opcode = 0, func = 18, takes = { rd = true, rt = false, rs = false, }, },
+
+    -- SMIPS specific instructions
+    pop = { opcode = 56, func = 0, takes = { rd = true, rt = false, rs = false, }, },
+    push = { opcode = 56, func = 1, takes = { rd = false, rt = false, rs = true, }, },
     halt = { opcode = 63, func = 63, takes = { rd = false, rt = false, rs = false, }, },
     tty = { opcode = 63, func = 1, takes = { rd = false, rt = false, rs = true, }, },
     rnd = { opcode = 63, func = 2, takes = { rd = true, rt = false, rs = false, }, },
@@ -62,6 +64,8 @@ do
     sw = { opcode = 43, takes = { rt = true, rs = false, cs = true, }, address = 'e', },
     beq = { opcode = 4, takes = { rt = true, rs = true, cs = true, rs_first = true, }, tagable = 'r', },
     bne = { opcode = 5, takes = { rt = true, rs = true, cs = true, rs_first = true, }, tagable = 'r', },
+
+    -- SMIPS specific instructions
     blez = { opcode = 6, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
     bgtz = { opcode = 7, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
     bltz = { opcode = 1, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
@@ -152,7 +156,7 @@ do
     end
 
     local function feed_tag (tagname)
-      if (tagname:match ('__anon[0-9]+__')) then
+      if (tagname:match ('__anon([0-9]+)__')) then
         compe ('Tag name \'%s\' is reserved')
       else
         unit:add_tag (tagname)
@@ -465,6 +469,12 @@ do
               ent.const = ((const - tags.rel (i - 1)) / 4) - 1
             else
               inst.constant = const
+            end
+          elseif (type (const) == 'string') then
+            if (#const < 5) then
+              inst.constant = const:byte (1, #const)
+            else
+              compe ('Data too big to fit into a register')
             end
           else
             compe ('Value should be constant number')
