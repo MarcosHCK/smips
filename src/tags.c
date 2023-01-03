@@ -21,6 +21,7 @@
 #include <tags.h>
 
 static SmipsTag* _new (lua_State* L);
+static int _wrap (lua_State* L, SmipsTag* tag);
 static int _abs (lua_State* L);
 static int _rel (lua_State* L);
 
@@ -101,7 +102,6 @@ static int __index (lua_State* L)
   const SmipsTagIndex* index = NULL;
   const SmipsTag* self = checktag (L, 1);
   const gchar* key = luaL_checklstring (L, 2, &keysz);
-  const gchar* value = NULL;
 
   if ((index = _smips_tag_index_lookup (key, keysz)) == NULL)
     lua_getfield (L, lua_upvalueindex (1), key);
@@ -118,10 +118,24 @@ static int __index (lua_State* L)
           break;
         case LUA_TSTRING:
           {
+            const gchar* value = NULL;
             if ((value = G_STRUCT_MEMBER (gchar*, self, index->offset)) == NULL)
               lua_pushnil (L);
             else
               lua_pushstring (L, value);
+          }
+          break;
+
+        case -1:
+          {
+            const SmipsTag* value = NULL;
+            if ((value = G_STRUCT_MEMBER (SmipsTag*, self, index->offset)) == NULL)
+              lua_pushnil (L);
+            else
+            {
+              _smips_tag_ref ((SmipsTag*) value);
+              _wrap (L, (SmipsTag*) value);
+            }
           }
           break;
       }
@@ -183,6 +197,11 @@ static int _type (lua_State* L)
 return 2;
 }
 
+static int _subtype (lua_State* L)
+{
+return (_type (L) - 1);
+}
+
 static int _print (lua_State* L)
 {
   SmipsTag* self = checktag (L, 1);
@@ -191,53 +210,10 @@ static int _print (lua_State* L)
 return 0;
 }
 
-static guint _calculate_ (lua_State* L, SmipsTag* tag)
-{
-  if (tag->type & TAG_VALUE)
-  {
-    if (tag->type & TAG_ABSOLUTE)
-      return tag->value;
-    if (tag->type & TAG_RELATIVE)
-    {
-      lua_pushvalue (L, 2);
-      lua_pushinteger (L, tag->value);
-      lua_call (L, 1, 1);
-      return lua_tointeger (L, -1);
-    }
-  }
-  else
-  {
-    switch (tag->type)
-    {
-      case TAG_ADD: return _calculate_ (L, tag->left) + _calculate_ (L, tag->right);
-      case TAG_SUB: return _calculate_ (L, tag->left) - _calculate_ (L, tag->right);
-      case TAG_MUL: return _calculate_ (L, tag->left) * _calculate_ (L, tag->right);
-      case TAG_DIV: return _calculate_ (L, tag->left) / _calculate_ (L, tag->right);
-      case TAG_MOD: return _calculate_ (L, tag->left) % _calculate_ (L, tag->right);
-      case TAG_UNM: return -_calculate_ (L, tag->left);
-
-      case TAG_IDIV:
-        {
-          guint value1 = _calculate_ (L, tag->left);
-          guint value2 = _calculate_ (L, tag->right);
-          return value1 / value2;
-        }
-    }
-  }
-}
-
-static int _calculate (lua_State* L)
-{
-    luaL_checktype (L, 2, LUA_TFUNCTION);
-  SmipsTag* self = checktag (L, 1);
-  guint value = _calculate_ (L, self);
-return (lua_pushinteger (L, value), 1);
-}
-
 G_MODULE_EXPORT
 int luaopen_tags (lua_State* L)
 {
-  lua_createtable (L, 0, 5);
+  lua_createtable (L, 0, 4);
   luaL_newmetatable (L, META);
 #ifdef LUA_ISJIT
   lua_pushliteral(L, META);
@@ -270,9 +246,9 @@ int luaopen_tags (lua_State* L)
   lua_setfield (L, -2, "rel");
   lua_pushcfunction (L, _type);
   lua_setfield (L, -2, "type");
+  lua_pushcfunction (L, _subtype);
+  lua_setfield (L, -2, "subtype");
   lua_pushcfunction (L, _print);
   lua_setfield (L, -2, "print");
-  lua_pushcfunction (L, _calculate);
-  lua_setfield (L, -2, "calculate");
 return 1;
 }

@@ -20,6 +20,7 @@ local insts = require ('insts')
 local log = require ('log')
 local opt = require ('options')
 local regs = require ('regs')
+local tags = require ('tags')
 local units = require ('unit')
 
 do
@@ -57,18 +58,21 @@ do
     andi = { opcode = 12, takes = { rt = true, rs = true, cs = true, }, },
     ori = { opcode = 13, takes = { rt = true, rs = true, cs = true, }, },
     xori = { opcode = 14, takes = { rt = true, rs = true, cs = true, }, },
-    lw = { opcode = 35, takes = { rt = true, rs = false, cs = true, }, address = true, },
-    sw = { opcode = 43, takes = { rt = true, rs = false, cs = true, }, address = true, },
-    beq = { opcode = 4, takes = { rt = true, rs = true, cs = true, }, tagable = 'r', },
-    bne = { opcode = 5, takes = { rt = true, rs = true, cs = true, }, tagable = 'r', },
+    lw = { opcode = 35, takes = { rt = true, rs = false, cs = true, }, address = 'e', },
+    sw = { opcode = 43, takes = { rt = true, rs = false, cs = true, }, address = 'e', },
+    beq = { opcode = 4, takes = { rt = true, rs = true, cs = true, rs_first = true, }, tagable = 'r', },
+    bne = { opcode = 5, takes = { rt = true, rs = true, cs = true, rs_first = true, }, tagable = 'r', },
     blez = { opcode = 6, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
     bgtz = { opcode = 7, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
     bltz = { opcode = 1, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
+
+    -- Hacks
+    lea = { opcode = 8, takes = { rt = true, cs = true, }, tagable = 'a', address = 'l', },
   }
 
   local j_insts =
   {
-    j = { opcode = 2, takes = { cs = true, }, tagable = 'a', },
+    j = { opcode = 2, takes = { cs = true, }, tagable = 'j', },
   }
 
   local function breakargs (args)
@@ -92,7 +96,7 @@ do
   local anons = 0
   local function anontag ()
     anons = anons + 1
-  return ('@anon%i'):format (anons)
+  return ('__anon%i__'):format (anons)
   end
 
   local function feed (unit, source)
@@ -148,7 +152,11 @@ do
     end
 
     local function feed_tag (tagname)
-      unit:add_tag (tagname)
+      if (tagname:match ('__anon[0-9]+__')) then
+        compe ('Tag name \'%s\' is reserved')
+      else
+        unit:add_tag (tagname)
+      end
     end
 
     local function feed_directive (name, ...)
@@ -169,22 +177,19 @@ do
 
     local function put_iinst (desc, rt, rs, cs)
       local inst, loc, addr
-      loc = ('%s: %i'):format (source, linen)
-      addr = not not desc.address
       inst = insts.new (desc.opcode)
       inst = inst:typei ()
-      inst.rt = rt
-      inst.rs = rs
-      unit:add_inst (inst, cs, addr)
+      inst.rt = desc.takes.rs_first and rs or rt
+      inst.rs = desc.takes.rs_first and rt or rs
+      unit:add_inst (inst, cs, desc.tagable, desc.address)
       unit:annotate (source, linen)
     end
 
     local function put_jinst (desc, cs)
       local inst, loc
-      loc = ('%s: %i'):format (source, linen)
       inst = insts.new (desc.opcode)
       inst = inst:typej ()
-      unit:add_inst (inst, cs)
+      unit:add_inst (inst, cs, desc.tagable)
       unit:annotate (source, linen)
     end
 
@@ -194,7 +199,7 @@ do
         local return_ = anontag ()
         local target_ = assertcs (getnext (...))
 
-        put_iinst (i_insts.addi, regs ['ra'], 0, return_)
+        put_iinst (i_insts.lea, regs ['ra'], 0, return_)
         put_jinst (j_insts.j, target_)
         unit:add_tag (return_)
       end,
@@ -370,7 +375,44 @@ do
       end
     end
 
-    for _, ent in ipairs (unit.block) do
+    local function calculate (tag)
+      checkArg (1, tag, 'SmipsTag')
+
+      local type, subtype = tag:type ()
+      if (type == 'value') then
+        if (subtype == 'absolute') then
+          return tag.value
+        elseif (subtype == 'relative') then
+          local block = unit.block
+          local idx = tag.value
+          local at = block [idx]
+          return at.offset + at.size
+        else
+          error ('Unknown type ' .. subtype)
+        end
+      else
+        local left = tag.left
+        local right = tag.right
+
+        if (subtype == 'add') then
+          return calculate (left) + calculate (right)
+        elseif (subtype == 'sub') then
+          return calculate (left) - calculate (right)
+        elseif (subtype == 'mul') then
+          return calculate (left) * calculate (right)
+        elseif (subtype == 'div') then
+          return calculate (left) / calculate (right)
+        elseif (subtype == 'mod') then
+          return calculate (left) % calculate (right)
+        elseif (subtype == 'unm') then
+          return -calculate (left)
+        else
+          error ('Unknown operation ' .. subtype)
+        end
+      end
+    end
+
+    for i, ent in ipairs (unit.block) do
       if (not ent.loc) then
         source = '?'
         linen = -1
@@ -382,12 +424,17 @@ do
       if (ent.inst ~= nil) then
         local inst = ent.inst
         local cs = ent.extra [1]
-        local addr = ent.extra [2]
+        local style = ent.extra [2]
+        local addr = ent.extra [3]
 
         if (addr) then
-          local offset, left = cs:match ('^(-?[0-9])%((.*)%)$')
+          local offset, left = cs:match ('^(%-?[0-9])%(([^%)]+)%)$')
           if (not offset) then
-            compe ('Invalid address \'%s\'', cs)
+            if (addr == 'e') then
+              compe ('Invalid address \'%s\'', cs)
+            elseif (addr ~= 'l') then
+              error ('Fix this!')
+            end
           else
             local reg = getreg (left)
             if (not reg) then
@@ -395,14 +442,29 @@ do
             else
               inst.rs = reg
               inst.constant = offset
+              cs = nil
             end
           end
-        elseif (cs) then
+        end
+
+        if (cs) then
           local const = expression (cs)
           if (pcall (checkArg, 1, const, 'SmipsTag')) then
-            ent.const  = const
+            if (style == 'r') then
+              ent.const = ((const - tags.rel (i - 1)) / 4) - 1
+            elseif (style == 'j') then
+              ent.const = const / 4
+            elseif (style == 'a') then
+              ent.const = const
+            else
+              compe ('Non tagable instruction')
+            end
           elseif (type (const) == 'number') then
-            inst.constant = const
+            if (style == 'r') then
+              ent.const = ((const - tags.rel (i - 1)) / 4) - 1
+            else
+              inst.constant = const
+            end
           else
             compe ('Value should be constant number')
           end
@@ -411,8 +473,8 @@ do
       elseif (ent.size) then
       end
 
-      offset = offset + ent.size
       ent.offset = offset
+      offset = offset + ent.size
     end
 
     for _, ent in ipairs (unit.block) do
@@ -427,12 +489,7 @@ do
       if (ent.const) then
         local tag = ent.const
         local inst = ent.inst
-        inst.constant =
-          tag:calculate (function (value)
-            local block = unit.block
-            local sub = block [value]
-            return sub.offset
-          end)
+        inst.constant = calculate (tag)
       end
     end
   end
@@ -451,6 +508,8 @@ do
         end
       end
     end
+
+    bank:close ()
   end
 
   local function main (...)
@@ -469,7 +528,6 @@ do
 
     process (unit)
     printout (unit, banks.new (output))
-    return true
   end
 return main (opt:parse (...))
 end

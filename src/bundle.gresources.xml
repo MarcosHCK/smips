@@ -27,6 +27,7 @@ Author: MarcosHCK
       Lua sources
     -->
 
+    <file>banks.luc</file>
     <file>regs.luc</file>
     <file>smips.luc</file>
     <file>unit.luc</file>

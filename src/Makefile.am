@@ -35,7 +35,6 @@ noinst_LTLIBRARIES=\
 	$(VOID)
 
 noinst_HEADERS=\
-	banks.h \
 	insts.h \
 	load.h \
 	log.h \
@@ -70,7 +69,6 @@ luac_LDFLAGS=\
 	$(VOID)
 
 smips_SOURCES=\
-	banks.c \
 	bundle.c \
 	inst.c \
 	insts.c \
@@ -110,6 +108,7 @@ libluacmpt_la_LIBADD=\
 	$(VOID)
 
 smips_LUCS=\
+	banks.luc \
 	regs.luc \
 	smips.luc \
 	unit.luc \
