@@ -455,7 +455,7 @@ do
 
   local function main (...)
     local files = {...}
-    local output = opt:getopt ('o')
+    local output = opt:getopt ('o') or '-'
     local unit = units.new ()
 
     for _, file in ipairs (files) do
