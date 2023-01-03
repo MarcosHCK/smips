@@ -181,7 +181,28 @@ do
       inst = inst:typei ()
       inst.rt = desc.takes.rs_first and rs or rt
       inst.rs = desc.takes.rs_first and rt or rs
-      unit:add_inst (inst, cs, desc.tagable, desc.address)
+
+      if (desc.address) then
+        local offset, left = cs:match ('^(%-?[0-9]+)%(([^%)]+)%)$')
+        if (not offset) then
+          if (desc.address == 'e') then
+            compe ('Invalid address \'%s\'', cs)
+          elseif (desc.address ~= 'l') then
+            error ('Fix this!')
+          end
+        else
+          local reg = getreg (left)
+          if (not reg) then
+            compe ('Invalid register \'%s\'', left)
+          else
+            inst.rs = reg
+            inst.constant = offset
+            cs = nil
+          end
+        end
+      end
+
+      unit:add_inst (inst, cs, desc.tagable)
       unit:annotate (source, linen)
     end
 
@@ -426,26 +447,6 @@ do
         local cs = ent.extra [1]
         local style = ent.extra [2]
         local addr = ent.extra [3]
-
-        if (addr) then
-          local offset, left = cs:match ('^(%-?[0-9])%(([^%)]+)%)$')
-          if (not offset) then
-            if (addr == 'e') then
-              compe ('Invalid address \'%s\'', cs)
-            elseif (addr ~= 'l') then
-              error ('Fix this!')
-            end
-          else
-            local reg = getreg (left)
-            if (not reg) then
-              compe ('Invalid register \'%s\'', left)
-            else
-              inst.rs = reg
-              inst.constant = offset
-              cs = nil
-            end
-          end
-        end
 
         if (cs) then
           local const = expression (cs)
