@@ -50,6 +50,12 @@ do
     tty = { opcode = 63, func = 1, takes = { rd = false, rt = false, rs = true, }, },
     rnd = { opcode = 63, func = 2, takes = { rd = true, rt = false, rs = false, }, },
     kbd = { opcode = 63, func = 4, takes = { rd = true, rt = false, rs = false, }, },
+
+    -- Patch to SMIPS
+    sll = { opcode = 0, func = 0, takes = { rd = true, rt = true, shamt = true, }, },
+    srl = { opcode = 0, func = 2, takes = { rd = true, rt = true, shamt = true, }, },
+    sllv = { opcode = 0, func = 4, takes = { rd = true, rt = true, rs = true, }, },
+    srlv = { opcode = 0, func = 6, takes = { rd = true, rt = true, rs = true, }, },
   }
 
   local i_insts =
@@ -167,13 +173,39 @@ do
       error ('Unimplemented')
     end
 
-    local function put_rinst (desc, rt, rs, rd)
+    local function put_rinst (desc, rt, rs, rd, shamt)
       local inst, loc
       inst = insts.new (desc.opcode)
       inst = inst:typer ()
+
+      if (not shamt) then
+        shamt = 0
+      else
+        local env = {}
+        local expr = ('do return %s; end'):format (shamt)
+        local chunk, reason, result
+
+        chunk, reason = load (expr, '=shamt', 't', env)
+        if (not chunk) then
+          compe (reason)
+        else
+          result, reason = pcall (chunk)
+          if (not result) then
+            compe (reason)
+          else
+            if (type (reason) ~= 'number') then
+              compe ('Shift amount shold be a constant number')
+            else
+              shamt = reason
+            end
+          end
+        end
+      end
+
       inst.rt = rt
       inst.rs = rs
       inst.rd = rd
+      inst.shamt = shamt
       inst.func = desc.func
       unit:add_inst (inst)
       unit:annotate (source, linen)
@@ -252,7 +284,8 @@ do
         local rd = takes.rd and assertreg (getnext (...)) or 0
         local rs = takes.rs and assertreg (getnext (...)) or 0
         local rt = takes.rt and assertreg (getnext (...)) or 0
-        put_rinst (desc, rt, rs, rd)
+        local shamt = takes.shamt and assertcs (getnext (...)) or '0'
+        put_rinst (desc, rt, rs, rd, shamt)
       elseif (i_insts [inst] ~= nil) then
         local desc = i_insts [inst]
         local takes = desc.takes
