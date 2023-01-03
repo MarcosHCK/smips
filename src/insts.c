@@ -26,7 +26,6 @@
 static int __gc (lua_State* L)
 {
   SmipsInst* self = luaL_checkudata (L, 1, META);
-  _g_free0 (self->cs);
 return 0;
 }
 

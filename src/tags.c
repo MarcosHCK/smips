@@ -24,8 +24,6 @@ static SmipsTag* _new (lua_State* L);
 static int _abs (lua_State* L);
 static int _rel (lua_State* L);
 
-#define _g_free0(var) ((var == NULL) ? NULL : (var = (g_free (var), NULL)))
-
 #define META "SmipsTag"
 #define checktag(L,idx) \
   (G_GNUC_EXTENSION ({ \
@@ -132,11 +130,10 @@ static int __index (lua_State* L)
 return 1;
 }
 
-static SmipsTag* _new (lua_State* L)
+static int _wrap (lua_State* L, SmipsTag* tag)
 {
   const int type = 0;
   const gsize sz = sizeof (SmipsTag*);
-  SmipsTag* self = _smips_tag_new ();
   SmipsTag** ref = lua_newuserdata (L, sz);
 #if LUA_VERSION_NUM >= 502
   luaL_setmetatable (L, META);
@@ -144,13 +141,20 @@ static SmipsTag* _new (lua_State* L)
   lua_getfield (L, LUA_REGISTRYINDEX, META);
   lua_setmetatable (L, -2);
 #endif // LUA_VERSION_NUM
-    *ref = self;
+    *ref = tag;
+return 1;
+}
+
+static SmipsTag* _new (lua_State* L)
+{
+  SmipsTag* self;
+  _wrap (L, (self = _smips_tag_new ()));
 return self;
 }
 
 static int _abs (lua_State* L)
 {
-  const int type = 0;
+  const int type = TAG_ABSOLUTE;
   const guint value = luaL_optinteger (L, 1, 0);
   SmipsTag* self = _new (L);
     self->type = TAG_VALUE | type;
@@ -160,7 +164,7 @@ return 1;
 
 static int _rel (lua_State* L)
 {
-  const int type = TAG_REL;
+  const int type = TAG_RELATIVE;
   const guint value = luaL_optinteger (L, 1, 0);
   SmipsTag* self = _new (L);
     self->type = TAG_VALUE | type;
@@ -168,56 +172,18 @@ static int _rel (lua_State* L)
 return 1;
 }
 
-void _smips_tag_print (SmipsTag* tag, int level)
+static int _type (lua_State* L)
 {
-  gchar stat [32];
-  gchar* _idents = NULL;
-  gchar* idents = NULL;
+  const SmipsTag* self = checktag (L, 1);
+  const gchar *type, *subtype;
 
-  static const gchar* ops [] =
-  {
-    "add", "sub",
-    "mul", "div",
-    "idiv", "mod",
-    "unm",
-  };
-
-  if (level >= G_N_ELEMENTS (stat))
-  {
-    _idents = g_strnfill (level, ' ');
-    idents = _idents;
-  }
-  else
-  {
-    int i;
-    for (i = 0; i < level; i++)
-      stat [i] = ' ';
-      stat [level] = '\0';
-      idents = stat;
-  }
-
-  if ((tag->type & TAG_VALUE) != 0)
-  {
-    const int idx = tag->type & TAG_REL;
-    const gchar* value = (idx) ? "rel" : "abs";
-    g_print ("%s- %s : %i\r\n", idents, value, tag->value);
-    _g_free0 (_idents);
-  }
-  else
-  {
-    const int idx = (tag->type & TAG_OP_MASK);
-    const gchar* value = ops [(idx >> 1) - 1];
-    g_print ("%s- op : %s %i\r\n", idents, value, (idx >> 1) - 1);
-    _g_free0 (_idents);
-
-    if (tag->left != NULL)
-      _smips_tag_print (tag->left, level + 1);
-    if (tag->right != NULL)
-      _smips_tag_print (tag->right, level + 1);
-  }
+  _smips_tag_type (self, &type, &subtype);
+  lua_pushstring (L, type);
+  lua_pushstring (L, subtype);
+return 2;
 }
 
-static int print (lua_State* L)
+static int _print (lua_State* L)
 {
   SmipsTag* self = checktag (L, 1);
   const int level = luaL_optinteger (L, 2, 0);
@@ -225,10 +191,53 @@ static int print (lua_State* L)
 return 0;
 }
 
+static guint _calculate_ (lua_State* L, SmipsTag* tag)
+{
+  if (tag->type & TAG_VALUE)
+  {
+    if (tag->type & TAG_ABSOLUTE)
+      return tag->value;
+    if (tag->type & TAG_RELATIVE)
+    {
+      lua_pushvalue (L, 2);
+      lua_pushinteger (L, tag->value);
+      lua_call (L, 1, 1);
+      return lua_tointeger (L, -1);
+    }
+  }
+  else
+  {
+    switch (tag->type)
+    {
+      case TAG_ADD: return _calculate_ (L, tag->left) + _calculate_ (L, tag->right);
+      case TAG_SUB: return _calculate_ (L, tag->left) - _calculate_ (L, tag->right);
+      case TAG_MUL: return _calculate_ (L, tag->left) * _calculate_ (L, tag->right);
+      case TAG_DIV: return _calculate_ (L, tag->left) / _calculate_ (L, tag->right);
+      case TAG_MOD: return _calculate_ (L, tag->left) % _calculate_ (L, tag->right);
+      case TAG_UNM: return -_calculate_ (L, tag->left);
+
+      case TAG_IDIV:
+        {
+          guint value1 = _calculate_ (L, tag->left);
+          guint value2 = _calculate_ (L, tag->right);
+          return value1 / value2;
+        }
+    }
+  }
+}
+
+static int _calculate (lua_State* L)
+{
+    luaL_checktype (L, 2, LUA_TFUNCTION);
+  SmipsTag* self = checktag (L, 1);
+  guint value = _calculate_ (L, self);
+return (lua_pushinteger (L, value), 1);
+}
+
 G_MODULE_EXPORT
 int luaopen_tags (lua_State* L)
 {
-  lua_createtable (L, 0, 1);
+  lua_createtable (L, 0, 5);
   luaL_newmetatable (L, META);
 #ifdef LUA_ISJIT
   lua_pushliteral(L, META);
@@ -259,7 +268,11 @@ int luaopen_tags (lua_State* L)
   lua_setfield (L, -2, "abs");
   lua_pushcfunction (L, _rel);
   lua_setfield (L, -2, "rel");
-  lua_pushcfunction (L, print);
+  lua_pushcfunction (L, _type);
+  lua_setfield (L, -2, "type");
+  lua_pushcfunction (L, _print);
   lua_setfield (L, -2, "print");
+  lua_pushcfunction (L, _calculate);
+  lua_setfield (L, -2, "calculate");
 return 1;
 }

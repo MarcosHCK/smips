@@ -36,7 +36,6 @@ struct _SmipsInst
   guint shamt;
   guint func;
   guint rd, rs, rt;
-  gchar* cs;
 };
 
 enum

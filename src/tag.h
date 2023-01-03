@@ -36,6 +36,8 @@ struct _SmipsTagIndex
 G_GNUC_INTERNAL void *_smips_tag_new ();
 G_GNUC_INTERNAL void *_smips_tag_ref (gpointer ptag);
 G_GNUC_INTERNAL void _smips_tag_unref (gpointer ptag);
+G_GNUC_INTERNAL void _smips_tag_type (const SmipsTag* tag, const gchar** _type, const gchar** _subtype);
+G_GNUC_INTERNAL void _smips_tag_print (const SmipsTag* tag, int level);
 G_GNUC_INTERNAL const SmipsTagIndex* _smips_tag_index_lookup (const char *str, size_t len);
 
 #if __cplusplus

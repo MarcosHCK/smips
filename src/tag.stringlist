@@ -30,6 +30,9 @@ struct _SmipsTagIndex {};
 %%
 value, LUA_TNUMBER, TAG_VALUE, G_STRUCT_OFFSET (SmipsTag, value)
 %%
+
+#define _g_free0(var) ((var == NULL) ? NULL : (var = (g_free (var), NULL)))
+
 void *_smips_tag_new ()
 {
   SmipsTag* tag = g_slice_new0 (SmipsTag);
@@ -42,7 +45,7 @@ void *_smips_tag_ref (gpointer ptag)
   SmipsTag* tag = ptag;
   g_atomic_ref_count_inc (&tag->refs);
 return (void*) tag;  
-} 
+}
 
 void _smips_tag_unref (gpointer ptag)
 {
@@ -56,5 +59,61 @@ void _smips_tag_unref (gpointer ptag)
     }
 
     g_slice_free (SmipsTag, ptag);
+  }
+}
+
+void _smips_tag_type (const SmipsTag* tag, const gchar** _type, const gchar** _subtype)
+{
+  static const gchar* types [] = { "operation", "value", };
+  static const gchar* operationes[] = { "add", "sub", "mul", "div", "idiv", "mod", "unm", };
+  static const gchar* values [] = { "absolute", "relative", };
+
+  const int type = tag->type & TAG_TYPE_MASK;
+  const int operation = tag->type & TAG_OPER_MASK;
+  const int value = tag->type & TAG_VALUE_MASK;
+
+  if ((type & TAG_VALUE))
+    *_subtype = values [(value >> 1) - 1];
+  else
+    *_subtype = operationes [(value >> 1) - 1];
+    *_type = types [type];
+}
+
+void _smips_tag_print (const SmipsTag* tag, int level)
+{
+  gchar stat [32];
+  gchar *idents, *_idents = NULL;
+  const gchar *type, *subtype;
+
+  if (level >= G_N_ELEMENTS (stat))
+  {
+    _idents = g_strnfill (level, ' ');
+    idents = _idents;
+  }
+  else
+  {
+    int i;
+    for (i = 0; i < level; i++)
+      stat [i] = ' ';
+      stat [level] = '\0';
+      idents = stat;
+  }
+
+  _smips_tag_type (tag, &type, &subtype);
+
+  if ((tag->type & TAG_VALUE) != 0)
+  {
+    g_print ("%s- %s : %i\r\n", idents, type, tag->value);
+    _g_free0 (_idents);
+  }
+  else
+  {
+    g_print ("%s- op : %s\r\n", idents, subtype);
+    _g_free0 (_idents);
+
+    if (tag->left != NULL)
+      _smips_tag_print (tag->left, level + 1);
+    if (tag->right != NULL)
+      _smips_tag_print (tag->right, level + 1);
   }
 }

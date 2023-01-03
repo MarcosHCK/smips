@@ -15,6 +15,7 @@
 --  You should have received a copy of the GNU General Public License
 --  along with SMIPS Assembler.  If not, see <http://www.gnu.org/licenses/>.
 ]]
+local banks = require ('banks')
 local insts = require ('insts')
 local log = require ('log')
 local opt = require ('options')
@@ -155,7 +156,7 @@ do
     end
 
     local function put_rinst (desc, rt, rs, rd)
-      local inst
+      local inst, loc
       inst = insts.new (desc.opcode)
       inst = inst:typer ()
       inst.rt = rt
@@ -163,24 +164,28 @@ do
       inst.rd = rd
       inst.func = desc.func
       unit:add_inst (inst)
+      unit:annotate (source, linen)
     end
 
     local function put_iinst (desc, rt, rs, cs)
-      local inst
+      local inst, loc, addr
+      loc = ('%s: %i'):format (source, linen)
+      addr = not not desc.address
       inst = insts.new (desc.opcode)
       inst = inst:typei ()
       inst.rt = rt
       inst.rs = rs
-      inst.cs = cs
-      unit:add_inst (inst)
+      unit:add_inst (inst, cs, addr)
+      unit:annotate (source, linen)
     end
 
     local function put_jinst (desc, cs)
-      local inst
+      local inst, loc
+      loc = ('%s: %i'):format (source, linen)
       inst = insts.new (desc.opcode)
       inst = inst:typej ()
-      inst.cs = cs
-      unit:add_inst (inst)
+      unit:add_inst (inst, cs)
+      unit:annotate (source, linen)
     end
 
     local macros =
@@ -307,9 +312,150 @@ do
     until (not line)
   end
 
+  local function process (unit)
+    local source, linen
+    local offset = 0
+
+    local function compe (...)
+
+      local function collect (...)
+        if (select ('#', ...) > 1) then
+          return string.format (...)
+        else
+          return (...)
+        end
+      end
+
+      local literal = collect (...)
+      local where = ('%s: %i'):format (source, linen)
+      log.error (collect ('%s: %s', where, literal))
+    end
+
+    local function expression (expr)
+      local env, mt, reason
+      local chunk, result
+
+      env =
+      {
+        _ = offset,
+        tonumber = tonumber,
+        tostring = tostring,
+        math = setmetatable ({}, { __mode = 'protected', __index = _G.math, }),
+        string = setmetatable ({}, { __mode = 'protected', __index = _G.string, }),
+      }
+
+      mt =
+      {
+        __index = function (self, key)
+          local tags = unit.tags
+          if (tags [key]) then
+            return tags [key]
+          end
+        end,
+      }
+
+      setmetatable (env, mt)
+
+      expr = ('do return %s; end'):format (expr)
+      chunk, reason = load (expr, '=expression', 't', env)
+      if (not chunk) then
+        compe (reason)
+      else
+        result, reason = pcall (chunk)
+        if (not result) then
+          compe (reason)
+        else
+          return reason
+        end
+      end
+    end
+
+    for _, ent in ipairs (unit.block) do
+      if (not ent.loc) then
+        source = '?'
+        linen = -1
+      else
+        source = ent.loc.source
+        linen = ent.loc.line
+      end
+
+      if (ent.inst ~= nil) then
+        local inst = ent.inst
+        local cs = ent.extra [1]
+        local addr = ent.extra [2]
+
+        if (addr) then
+          local offset, left = cs:match ('^(-?[0-9])%((.*)%)$')
+          if (not offset) then
+            compe ('Invalid address \'%s\'', cs)
+          else
+            local reg = getreg (left)
+            if (not reg) then
+              compe ('Invalid register \'%s\'', left)
+            else
+              inst.rs = reg
+              inst.constant = offset
+            end
+          end
+        elseif (cs) then
+          local const = expression (cs)
+          if (pcall (checkArg, 1, const, 'SmipsTag')) then
+            ent.const  = const
+          elseif (type (const) == 'number') then
+            inst.constant = const
+          else
+            compe ('Value should be constant number')
+          end
+        end
+      elseif (ent.data) then
+      elseif (ent.size) then
+      end
+
+      offset = offset + ent.size
+      ent.offset = offset
+    end
+
+    for _, ent in ipairs (unit.block) do
+      if (not ent.loc) then
+        source = '?'
+        linen = -1
+      else
+        source = ent.loc.source
+        linen = ent.loc.line
+      end
+
+      if (ent.const) then
+        local tag = ent.const
+        local inst = ent.inst
+        inst.constant =
+          tag:calculate (function (value)
+            local block = unit.block
+            local sub = block [value]
+            return sub.offset
+          end)
+      end
+    end
+  end
+
+  local function printout (unit, bank)
+    for _, ent in ipairs (unit.block) do
+      if (ent.inst) then
+        bank:emit (ent.inst:encode ())
+      elseif (ent.data) then
+        for i = 1, #ent.data, 4 do
+          bank:emit ((ent.data):byte (i, i + 3))
+        end
+      elseif (ent.size) then
+        for i = 1, ent.size, 4 do
+          bank:emit (0)
+        end
+      end
+    end
+  end
+
   local function main (...)
     local files = {...}
-    local output = opt:getopt ('0')
+    local output = opt:getopt ('o')
     local unit = units.new ()
 
     for _, file in ipairs (files) do
@@ -320,7 +466,10 @@ do
         feed (unit, file)
       end
     end
-  end
 
-  main (opt:parse (...))
+    process (unit)
+    printout (unit, banks.new (output))
+    return true
+  end
+return main (opt:parse (...))
 end

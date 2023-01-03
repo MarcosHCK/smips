@@ -47,13 +47,14 @@ do
     end
   end
 
-  function unit.add_inst (self, inst)
+  function unit.add_inst (self, inst, ...)
     checkArg (0, self, 'SmipsUnit')
     checkArg (1, inst, 'SmipsInst')
 
     self.block:append ({
         size = 4,
         inst = inst,
+        extra = {...},
       })
   end
 
@@ -67,6 +68,23 @@ do
       local value = self.block:length ()
       local tag = tags.rel (value)
       self.tags [tagname] = tag
+    end
+  end
+
+  function unit.annotate (self, source, line)
+    checkArg (0, self, 'SmipsUnit')
+    checkArg (1, source, 'string')
+    checkArg (2, line, 'number')
+    local last = self.block:last ()
+
+    if (not last) then
+      error ('Empty unit')
+    else
+      last.loc =
+        {
+          source = source,
+          line = line,
+        }
     end
   end
 return unit

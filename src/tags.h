@@ -31,9 +31,6 @@ extern "C" {
 
 enum
 {
-  TAG_VALUE = 1,
-  TAG_REL = (1 << 1),
-
   TAG_OPER = 0,
   TAG_ADD = (1 << 1),
   TAG_SUB = (2 << 1),
@@ -43,8 +40,13 @@ enum
   TAG_MOD = (6 << 1),
   TAG_UNM = (7 << 1),
 
-  TAG_VALUE_MASK = (TAG_REL),
-  TAG_OP_MASK = (TAG_ADD | TAG_SUB | TAG_MUL| TAG_DIV | TAG_IDIV | TAG_MOD| TAG_UNM),
+  TAG_VALUE = 1,
+  TAG_ABSOLUTE = (1 << 1),
+  TAG_RELATIVE = (2 << 1),
+
+  TAG_TYPE_MASK = (TAG_VALUE | TAG_OPER),
+  TAG_OPER_MASK = (TAG_ADD | TAG_SUB | TAG_MUL| TAG_DIV | TAG_IDIV | TAG_MOD| TAG_UNM),
+  TAG_VALUE_MASK = (TAG_ABSOLUTE | TAG_RELATIVE),
 };
 
 struct _SmipsTag
