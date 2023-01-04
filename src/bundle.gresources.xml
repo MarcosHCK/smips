@@ -30,6 +30,7 @@ Author: MarcosHCK
     <file>banks.luc</file>
     <file>regs.luc</file>
     <file>smips.luc</file>
+    <file>splitters.luc</file>
     <file>unit.luc</file>
     <file>vector.luc</file>
 

@@ -20,8 +20,10 @@ local insts = require ('insts')
 local log = require ('log')
 local opt = require ('options')
 local regs = require ('regs')
+local splitters = require ('splitters')
 local tags = require ('tags')
 local units = require ('unit')
+local utils = require ('utils')
 
 do
   local r_insts =
@@ -553,12 +555,16 @@ do
       end
     end
 
-    bank:close ()
+    if (pcall (checkArg, 1, bank, 'SmipsBank')) then
+      bank:emit (-1)
+    end
+      bank:close ()
   end
 
   local function main (...)
     local files = {...}
-    local output = opt:getopt ('o') or '-'
+    local split = opt:getopt ('s')
+    local output = opt:getopt ('o')
     local unit = units.new ()
 
     for _, file in ipairs (files) do
@@ -571,7 +577,16 @@ do
     end
 
     process (unit)
-    printout (unit, banks.new (output))
+
+    if (not split) then
+      printout (unit, banks.new (output or '-'))
+    else
+      if (output ~= nil) then
+        printout (unit, splitters.new (output, split))
+      else
+        printout (unit, splitters.new (utils.pwd (), split))
+      end
+    end
   end
 return main (opt:parse (...))
 end

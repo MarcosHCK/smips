@@ -77,7 +77,6 @@ do
 
   function banks.close (self)
     checkArg (0, self, 'SmipsBank')
-    self.stream:write ('ffffffff')
     self.stream:close ()
   end
 return banks

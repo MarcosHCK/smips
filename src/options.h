@@ -31,6 +31,7 @@ extern "C" {
 struct _SmipsOptions
 {
   const gchar* output;
+  const gchar* split;
 };
 
 #if __cplusplus

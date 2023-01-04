@@ -79,6 +79,7 @@ smips_SOURCES=\
 	smips.c \
 	tag.c \
 	tags.c \
+	utils.c \
 	$(VOID)
 smips_CFLAGS=\
 	$(GIO_CFLAGS) \
@@ -111,6 +112,7 @@ smips_LUCS=\
 	banks.luc \
 	regs.luc \
 	smips.luc \
+	splitters.luc \
 	unit.luc \
 	vector.luc \
 	$(VOID)

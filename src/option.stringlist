@@ -28,5 +28,7 @@
 
 struct _SmipsOption {};
 %%
-output, G_STRUCT_OFFSET (SmipsOptions, output), G_OPTION_ARG_FILENAME
-o, G_STRUCT_OFFSET (SmipsOptions, output), G_OPTION_ARG_FILENAME
+split, G_OPTION_ARG_FILENAME, G_STRUCT_OFFSET (SmipsOptions, split)
+s, G_OPTION_ARG_FILENAME, G_STRUCT_OFFSET (SmipsOptions, split)
+output, G_OPTION_ARG_FILENAME, G_STRUCT_OFFSET (SmipsOptions, output)
+o, G_OPTION_ARG_FILENAME, G_STRUCT_OFFSET (SmipsOptions, output)

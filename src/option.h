@@ -29,8 +29,8 @@ extern "C" {
 struct _SmipsOption
 {
   int name;
-  goffset offset;
   GOptionArg type;
+  goffset offset;
 };
 
 G_GNUC_INTERNAL const SmipsOption* _smips_options_lookup (const char *str, size_t len);

@@ -115,6 +115,7 @@ static int _parse (lua_State* L)
     }
   }
 
+  self->split = NULL;
   self->output = NULL;
 
   context = g_option_context_new ("files ...");
@@ -122,6 +123,7 @@ static int _parse (lua_State* L)
   GOptionEntry entries [] =
   {
     { "output", 'o', 0, G_OPTION_ARG_FILENAME, & self->output, "Place output in FILE", "FILE", },
+    { "split", 's', 0, G_OPTION_ARG_STRING, & self->split, "Split bank into separate banks named GROUP", "GROUP" },
     G_OPTION_ENTRY_NULL,
   };
 
