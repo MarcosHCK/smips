@@ -167,7 +167,11 @@ do
       if (tagname:match ('__anon([0-9]+)__')) then
         compe ('Tag name \'%s\' is reserved')
       else
-        unit:add_tag (tagname)
+        if (unit.tags [tagname] ~= nil) then
+          compe ('Redefined tag \'%s\'', tagname)
+        else
+          unit:add_tag (tagname)
+        end
       end
     end
 
