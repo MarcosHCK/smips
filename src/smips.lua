@@ -431,6 +431,8 @@ do
           local tags = unit.tags
           if (tags [key]) then
             return tags [key]
+          else
+            compe ('Undefined tag \'%s\'', key)
           end
         end,
       }
@@ -442,12 +444,7 @@ do
       if (not chunk) then
         compe (reason)
       else
-        result, reason = pcall (chunk)
-        if (not result) then
-          compe (reason)
-        else
-          return reason
-        end
+        return (chunk ())
       end
     end
 
