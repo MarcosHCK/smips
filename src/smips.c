@@ -177,19 +177,6 @@ static int pmain (lua_State* L)
 return 1;
 }
 
-int (gerror) (lua_State* L, const char* loc, GError* error)
-{
-  const GQuark q = error->domain;
-  const guint c = error->code;
-  const gchar* m = error->message;
-  const gchar* d = g_quark_to_string (q);
-
-  lua_pushfstring (L, "%s: %s: %i: %s", loc, d, c, m);
-  g_error_free ((GError*) error);
-  lua_error (L);
-  for (;;);
-}
-
 int main (int argc, char* argv[])
 {
 #if G_PLATFORM_WIN32
