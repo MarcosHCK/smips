@@ -110,6 +110,8 @@ libluacmpt_la_LIBADD=\
 
 smips_LUCS=\
 	banks.luc \
+	feed.luc \
+	process.luc \
 	regs.luc \
 	smips.luc \
 	splitters.luc \

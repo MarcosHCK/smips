@@ -28,6 +28,8 @@ Author: MarcosHCK
     -->
 
     <file>banks.luc</file>
+    <file>feed.luc</file>
+    <file>process.luc</file>
     <file>regs.luc</file>
     <file>smips.luc</file>
     <file>splitters.luc</file>
