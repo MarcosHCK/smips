@@ -275,6 +275,15 @@ do
       end,
     }
 
+    local defaults =
+    {
+      rd = 0,
+      rs = 0,
+      rt = 0,
+      shamt = '0',
+      cs = '0',
+    }
+
     local function feed_inst (inst, ...)
       local getnext = argiter ()
 
@@ -282,23 +291,26 @@ do
         macros [inst] (getnext, ...)
       elseif (r_insts [inst] ~= nil) then
         local desc = r_insts [inst]
-        local takes = desc.takes
-        local rd = takes.rd and assertreg (getnext (...)) or 0
-        local rs = takes.rs and assertreg (getnext (...)) or 0
-        local rt = takes.rt and assertreg (getnext (...)) or 0
-        local shamt = takes.shamt and assertcs (getnext (...)) or '0'
+        local takes = desc.takes or {}
+        local _defaults = desc.defaults or defaults
+        local rd = takes.rd and assertreg (getnext (...)) or _defaults.rd
+        local rs = takes.rs and assertreg (getnext (...)) or _defaults.rs
+        local rt = takes.rt and assertreg (getnext (...)) or _defaults.rt
+        local shamt = takes.shamt and assertcs (getnext (...)) or _defaults.shamt
         put_rinst (desc, rt, rs, rd, shamt)
       elseif (i_insts [inst] ~= nil) then
         local desc = i_insts [inst]
-        local takes = desc.takes
-        local rt = takes.rt and assertreg (getnext (...)) or 0
-        local rs = takes.rs and assertreg (getnext (...)) or 0
-        local cs = takes.cs and assertcs (getnext (...)) or '0'
+        local takes = desc.takes or {}
+        local _defaults = desc.defaults or defaults
+        local rt = takes.rt and assertreg (getnext (...)) or _defaults.rt
+        local rs = takes.rs and assertreg (getnext (...)) or _defaults.rs
+        local cs = takes.cs and assertcs (getnext (...)) or _defaults.cs
         put_iinst (desc, rt, rs, cs)
       elseif (j_insts [inst] ~= nil) then
         local desc = j_insts [inst]
-        local takes = desc.takes
-        local cs = takes.cs and assertcs (getnext (...)) or '0'
+        local takes = desc.takes or {}
+        local _defaults = desc.defaults or defaults
+        local cs = takes.cs and assertcs (getnext (...)) or _defaults.cs
         put_jinst (desc, cs)
       else
         compe ('Unknown instruction \'%s\'', inst)
