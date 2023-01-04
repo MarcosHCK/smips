@@ -118,8 +118,6 @@ static int _parse (lua_State* L)
   self->split = NULL;
   self->output = NULL;
 
-  context = g_option_context_new ("files ...");
-
   GOptionEntry entries [] =
   {
     { "output", 'o', 0, G_OPTION_ARG_FILENAME, & self->output, "Place output in FILE", "FILE", },
@@ -127,6 +125,7 @@ static int _parse (lua_State* L)
     G_OPTION_ENTRY_NULL,
   };
 
+  context = g_option_context_new ("files ...");
   g_option_context_add_main_entries (context, entries, "en_US");
   g_option_context_set_description (context, description);
   g_option_context_set_help_enabled (context, TRUE);
@@ -139,10 +138,10 @@ static int _parse (lua_State* L)
 
   if (G_LIKELY (tmperr == NULL))
   {
-    for (i = 0; i < argc; i++)
+    for (i = 1; i < argc; i++)
       lua_pushstring (L, argv [i]);
       _g_free0 (_argv);
-      return argc;
+      return argc - 1;
   }
   else
   {

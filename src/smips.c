@@ -154,9 +154,9 @@ static int pmain (lua_State* L)
   lua_pushcfunction (L, _smips_msgh);
   _smips_load (L, GRESROOT "/smips.luc");
 
-  for (i = 1; i < argc; i++)
+  for (i = 0; i < argc; i++)
     lua_pushstring (L, argv [i]);
-  switch (lua_pcall (L, argc - 1, 1, 1))
+  switch (lua_pcall (L, argc, 1, 1))
   {
     case LUA_OK:
       break;
