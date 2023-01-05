@@ -124,7 +124,6 @@ do
         local inst = ent.inst
         local cs = ent.extra [1]
         local style = ent.extra [2]
-        local addr = ent.extra [3]
 
         if (cs) then
           local const = expression (cs)
@@ -155,7 +154,17 @@ do
           end
         end
       elseif (ent.data) then
+        local size = #ent.data
+        local mis = size % 4
+        local cors = mis > 0 and 4 - mis or 0
+        local corz = (string.char (0)):rep (cors)
+          ent.size = size + cors
+          ent.data = ent.data .. corz
       elseif (ent.size) then
+        local size = ent.size
+        local char = string.char (0)
+        local data = char:rep (size)
+          ent.data = data
       end
 
       ent.offset = offset

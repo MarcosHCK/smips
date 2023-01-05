@@ -33,17 +33,40 @@ do
     return setmetatable (st, mt)
   end
 
-  function unit.add_data (self, data)
+  function unit.last (self)
+    checkArg (0, self, 'SmipsUnit')
+    local block = self.block
+  return block:last ()
+  end
+
+  function unit.annotate (self, source, line)
+    checkArg (0, self, 'SmipsUnit')
+    checkArg (1, source, 'string')
+    checkArg (2, line, 'number')
+    local last = self.block:last ()
+
+    if (not last) then
+      error ('Empty unit')
+    else
+      last.loc =
+        {
+          source = source,
+          line = line,
+        }
+    end
+  end
+
+  function unit.add_data (self, data, ...)
     checkArg (0, self, 'SmipsUnit')
     checkArg (1, data, 'string', 'number')
 
-    if (type (data) == 'string') then
-      self.block:append ({ data = data, })
+    if (type (data) == 'number') then
+      local una = data
+      local mis = data % 4
+      local size = mis > 0 and una + (4 - mis) or una
+      self.block:append ({ size = size, extra = {...}, })
     else
-      local size
-      size = #data
-      size = size + (4 - (size % 4))
-      self.block:append ({ size = size, })
+      self.block:append ({ data = data, extra = {...}, })
     end
   end
 
@@ -68,23 +91,6 @@ do
       local value = self.block:length ()
       local tag = tags.rel (value)
       self.tags [tagname] = tag
-    end
-  end
-
-  function unit.annotate (self, source, line)
-    checkArg (0, self, 'SmipsUnit')
-    checkArg (1, source, 'string')
-    checkArg (2, line, 'number')
-    local last = self.block:last ()
-
-    if (not last) then
-      error ('Empty unit')
-    else
-      last.loc =
-        {
-          source = source,
-          line = line,
-        }
     end
   end
 return unit

@@ -82,6 +82,34 @@ do
     j = { opcode = 2, takes = { cs = true, }, tagable = 'j', },
   }
 
+  local defaults =
+  {
+    rd = 0,
+    rs = 0,
+    rt = 0,
+    shamt = '0',
+    cs = '0',
+  }
+
+  local anons = 0
+  local function anontag ()
+    anons = anons + 1
+  return ('__anon%i__'):format (anons)
+  end
+
+  local function argiter ()
+    local nexti = 0
+    return function (...)
+      nexti = nexti + 1
+      local arg = select (nexti, ...)
+      if (arg) then
+        arg = arg:gsub ('^%s*', '')
+        arg = arg:gsub ('%s*$', '')
+        return arg
+      end
+    end
+  end
+
   local function breakargs (args)
     local arg, left = args:match ('^([^,]+)(.*)$')
     if (arg) then
@@ -98,12 +126,6 @@ do
     else
       return regs [reg]
     end
-  end
-
-  local anons = 0
-  local function anontag ()
-    anons = anons + 1
-  return ('__anon%i__'):format (anons)
   end
 
   local function feed (unit, source)
@@ -125,19 +147,6 @@ do
       log.error (collect ('%s: %s', where, literal))
     end
 
-    local function argiter ()
-      local nexti = 0
-      return function (...)
-        nexti = nexti + 1
-        local arg = select (nexti, ...)
-        if (arg) then
-          arg = arg:gsub ('^%s*', '')
-          arg = arg:gsub ('%s*$', '')
-          return arg
-        end
-      end
-    end
-
     local function assertreg (value)
       if (value == nil) then
         compe ('Expected register name')
@@ -156,23 +165,6 @@ do
         compe ('Expected expression')
       end
     return value
-    end
-
-    local function feed_tag (tagname)
-      if (tagname:match ('__anon([0-9]+)__')) then
-        compe ('Tag name \'%s\' is reserved')
-      else
-        if (unit.tags [tagname] ~= nil) then
-          compe ('Redefined tag \'%s\'', tagname)
-        else
-          unit:add_tag (tagname)
-        end
-      end
-    end
-
-    local function feed_directive (name, ...)
-      print (name, ...)
-      error ('Unimplemented')
     end
 
     local function put_rinst (desc, rt, rs, rd, shamt)
@@ -252,7 +244,12 @@ do
       unit:annotate (source, linen)
     end
 
-    local macros =
+    local macros
+    local i_directives
+    local a_directives
+    local l_directives
+
+    macros =
     {
       jal = function (getnext, ...)
         local return_ = anontag ()
@@ -275,14 +272,106 @@ do
       end,
     }
 
-    local defaults =
+    i_directives = {}
+    a_directives = {}
+
+    l_directives =
     {
-      rd = 0,
-      rs = 0,
-      rt = 0,
-      shamt = '0',
-      cs = '0',
+      space = function (arg)
+        local env = {}
+        local expr = ('do return %s; end'):format (arg)
+        local chunk, reason = load (expr, '=directive', 't', env)
+
+        if (not chunk) then
+          compe ('Invalid directive argument (\'%s\')', reason)
+        else
+          local size = (chunk ())
+          if (type (size) == 'number') then
+            unit:add_data (size)
+          else
+            compe ('Directive argument should be a constant number')
+          end
+        end
+      end,
+
+      ascii = function (arg)
+        local env = {}
+        local expr = ('do return %s; end'):format (arg)
+        local chunk, reason = load (expr, '=directive', 't', env)
+
+        if (not chunk) then
+          compe ('Invalid directive argument (\'%s\')', reason)
+        else
+          local data = (chunk ())
+          if (type (data) == 'string') then
+            unit:add_data (data)
+          elseif (type (data) == 'number') then
+            local byte = string.char (data)
+            unit:add_data (byte)
+          else
+            compe ('Directive argument should be a constant byte string')
+          end
+        end
+      end,
+
+      asciiz = function (arg)
+        local ent
+
+        l_directives.ascii (arg)
+        ent = unit:last ()
+        ent.data = ent.data .. string.char (0)
+      end,
     }
+
+    local function feed_tag (tagname)
+      if (tagname:match ('__anon([0-9]+)__')) then
+        compe ('Tag name \'%s\' is reserved')
+      else
+        if (unit.tags [tagname] ~= nil) then
+          compe ('Redefined tag \'%s\'', tagname)
+        else
+          unit:add_tag (tagname)
+        end
+      end
+    end
+
+    local function feed_directive (name, ...)
+      if (i_directives [name] ~= nil) then
+        local directive = i_directives [name]
+        if ((...) ~= nil) then
+          compe ('Directive \'%s\' takes no arguments', name)
+        else
+          directive ()
+        end
+      elseif (a_directives [name] ~= nil) then
+        local directive = a_directives [name]
+        local arg, left = ...
+
+        if (left ~= nil) then
+          compe ('Directive takes only one argument')
+        else
+          directive (arg)
+        end
+      elseif (l_directives [name] ~= nil) then
+        local directive = l_directives [name]
+        local getnext = argiter ()
+        local first = true
+
+        while (true) do
+          local arg = getnext (...)
+          if (not arg and first) then
+            compe ('Directive takes at least an argument')
+          elseif (arg) then
+            directive (arg)
+            first = false
+          else
+            break
+          end
+        end
+      else
+        compe ('Unknown directive \'%s\'', name)
+      end
+    end
 
     local function feed_inst (inst, ...)
       local getnext = argiter ()
@@ -327,7 +416,7 @@ do
         return feed_tag (tag)
       end
 
-      local name, left = stat:match ('^(%.[a-z]+)(.*)$')
+      local name, left = stat:match ('^%.([a-z]+)(.*)$')
       if (name ~= nil) then
         if (#left == 0) then
           return feed_directive (name)
