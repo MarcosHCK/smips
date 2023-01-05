@@ -73,7 +73,8 @@ do
     bltz = { opcode = 1, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
 
     -- Hacks
-    lea = { opcode = 8, takes = { rt = true, cs = true, }, tagable = 'a', address = 'l', },
+    la = { opcode = 8, takes = { rt = true, cs = true, }, tagable = 'a', address = 'l', },
+    li = { opcode = 8, takes = { rt = true, cs = true, }, },
   }
 
   local j_insts =
@@ -170,6 +171,7 @@ do
     end
 
     local function feed_directive (name, ...)
+      print (name, ...)
       error ('Unimplemented')
     end
 
@@ -256,7 +258,7 @@ do
         local return_ = anontag ()
         local target_ = assertcs (getnext (...))
 
-        put_iinst (i_insts.lea, regs ['ra'], 0, return_)
+        put_iinst (i_insts.la, regs ['ra'], 0, return_)
         put_jinst (j_insts.j, target_)
         unit:add_tag (return_)
       end,
