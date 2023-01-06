@@ -306,8 +306,12 @@ do
           if (type (data) == 'string') then
             unit:add_data (data)
           elseif (type (data) == 'number') then
-            local byte = string.char (data)
-            unit:add_data (byte)
+            if (data < 0 or data > 255) then
+              compe ('Number %i is too big for byte data', data)
+            else
+              local byte = string.char (data)
+              unit:add_data (byte)
+            end
           else
             compe ('Directive argument should be a constant byte string')
           end

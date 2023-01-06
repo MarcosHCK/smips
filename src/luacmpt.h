@@ -39,7 +39,9 @@ extern "C" {
 #endif // __cplusplus
 
 #if LUA_VERSION_NUM < 502
+int repl_load (lua_State* L);
 # ifndef LUA_ISJIT
+void luaL_traceback (lua_State* L, lua_State* L1, const char* message, int level);
 int luaL_testudata (lua_State *L, int idx, const char *tname);
 # endif // LUA_ISJIT
 #endif // LUA_VERSION_NUM

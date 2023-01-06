@@ -30,22 +30,6 @@ static int _error (lua_State* L)
 return _smips_log_error (L, level, user);
 }
 
-G_MODULE_EXPORT
-int luaopen_log (lua_State* L)
-{
-  luaL_newmetatable (L, META);
-#ifdef LUA_ISJIT
-  lua_pushliteral (L, META);
-  lua_setfield (L, -2, "__name");
-#endif // LUA_ISJIT
-  lua_pop (L, 1);
-
-  lua_createtable (L, 0, 1);
-  lua_pushcfunction (L, _error);
-  lua_setfield (L, -2, "error");
-return 1;
-}
-
 int _smips_log_error (lua_State* L, int level, int user)
 {
   if (lua_gettop (L) < 1)
@@ -57,12 +41,12 @@ int _smips_log_error (lua_State* L, int level, int user)
   lua_getfield (L, LUA_REGISTRYINDEX, META);
   lua_setmetatable (L, -2);
 #endif // LUA_VERSION_NUM
-  lua_pushvalue (L, -2);
-  lua_setfield (L, -2, "message");
-  lua_pushinteger (L, level);
-  lua_setfield (L, -2, "level");
   lua_pushinteger (L, user);
   lua_setfield (L, -2, "user");
+  lua_pushinteger (L, level);
+  lua_setfield (L, -2, "level");
+  lua_pushvalue (L, -2);
+  lua_setfield (L, -2, "message");
   lua_error (L);
   g_assert_not_reached ();
 }
@@ -143,14 +127,27 @@ int _smips_msgh (lua_State* L)
   }
 
   if (user == 1)
-  {
     lua_pushstring (L, message);
-    return 1;
-  }
   else
   {
     lua_pushfstring (L, "Internal error (run): %s", message);
     luaL_traceback (L, L, lua_tostring (L, -1), level);
-    return 1;
   }
+return 1;
+}
+
+G_MODULE_EXPORT
+int luaopen_log (lua_State* L)
+{
+  luaL_newmetatable (L, META);
+#if LUA_VERSION_NUM < 503
+  lua_pushliteral (L, META);
+  lua_setfield (L, -2, "__name");
+#endif // LUA_VERSION_NUM
+  lua_pop (L, 1);
+
+  lua_createtable (L, 0, 1);
+  lua_pushcfunction (L, _error);
+  lua_setfield (L, -2, "error");
+return 1;
 }

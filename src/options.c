@@ -166,10 +166,10 @@ int luaopen_options (lua_State* L)
 {
   lua_newuserdata (L, sizeof (SmipsOptions));
   luaL_newmetatable (L, META);
-#ifdef LUA_ISJIT
+#if LUA_VERSION_NUM < 503
   lua_pushliteral (L, META);
   lua_setfield (L, -2, "__name");
-#endif // LUA_ISJIT
+#endif // LUA_VERSION_NUM
   lua_createtable (L, 0, 0);
   lua_pushcfunction (L, _getopt);
   lua_setfield (L, -2, "getopt");

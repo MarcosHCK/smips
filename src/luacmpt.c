@@ -19,6 +19,49 @@
 #include <luacmpt.h>
 
 #if LUA_VERSION_NUM < 502
+
+static int reader_s (lua_State* L)
+{
+  const int si = lua_upvalueindex (1);
+  const int bi = lua_upvalueindex (2);
+
+  if (lua_toboolean (L, bi) == 1)
+    lua_pushnil (L);
+  else
+  {
+    lua_pushboolean (L, 1);
+    lua_replace (L, bi);
+    lua_pushvalue (L, si);
+  }
+return 1;
+}
+
+int repl_load (lua_State* L)
+{
+  switch (lua_type (L, 1))
+  {
+    case LUA_TSTRING:
+      lua_pushvalue (L, 1);
+      lua_pushboolean (L, 0);
+      lua_pushcclosure (L, reader_s, 2);
+      lua_replace (L, 1);
+    case LUA_TFUNCTION:
+      lua_pushvalue (L, lua_upvalueindex (1));
+      lua_insert (L, 1);
+      lua_call (L, lua_gettop (L) - 1, LUA_MULTRET);
+      break;
+
+    default:
+      {
+        const char* name = lua_typename (L, lua_type (L, 1));
+        const char* mesg = lua_pushfstring (L, "expected string or function, got %s", name);
+          luaL_argerror (L, 1, mesg);
+          break;
+      }
+  }
+return lua_gettop (L);
+}
+
 # ifndef LUA_ISJIT
 
 #define LEVELS1 12

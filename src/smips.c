@@ -18,6 +18,7 @@
 #include <config.h>
 #include <lua.h>
 #include <lualib.h>
+#include <luacmpt.h>
 #include <load.h>
 #include <log.h>
 
@@ -51,7 +52,7 @@ static int checkarg (lua_State* L)
 
   luaL_where (L, level);
   luaL_addvalue (& B);
-  lua_pushfstring (L, "bad argument #%i (expected", argn);
+  lua_pushfstring (L, "bad argument #%d (expected", argn);
   luaL_addvalue (& B);
 
   for (i = 3; i < (top + 1); i++)
@@ -139,6 +140,11 @@ static int pmain (lua_State* L)
 #endif // LUA_VERSION_NUM
   lua_pushcfunction (L, checkarg);
   lua_setfield (L, -2, "checkArg");
+#if LUA_VERSION_NUM < 502
+  lua_getfield (L, -1, "load");
+  lua_pushcclosure (L, repl_load, 1);
+  lua_setfield (L, -2, "load");
+#endif // LUA_VERSION_NUM
   lua_pop (L, 1);
 
 #if LUA_VERSION_NUM < 502

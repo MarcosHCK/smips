@@ -213,12 +213,12 @@ return 0;
 G_MODULE_EXPORT
 int luaopen_tags (lua_State* L)
 {
-  lua_createtable (L, 0, 4);
+  lua_createtable (L, 0, 5);
   luaL_newmetatable (L, META);
-#ifdef LUA_ISJIT
-  lua_pushliteral(L, META);
-  lua_setfield(L, -2, "__name");
-#endif // LUA_ISJIT
+#if LUA_VERSION_NUM < 503
+  lua_pushliteral (L, META);
+  lua_setfield (L, -2, "__name");
+#endif // LUA_VERSION_NUM
   lua_pushcfunction (L, __add);
   lua_setfield (L, -2, "__add");
   lua_pushcfunction (L, __sub);

@@ -180,13 +180,13 @@ return (lua_pushinteger (L, inst), 1);
 G_MODULE_EXPORT
 int luaopen_insts (lua_State* L)
 {
-  lua_createtable (L, 0, 1);
+  lua_createtable (L, 0, 5);
 
   luaL_newmetatable (L, META);
-#ifdef LUA_ISJIT
+#if LUA_VERSION_NUM < 503
   lua_pushliteral (L, META);
   lua_setfield (L, -2, "__name");
-#endif // LUA_ISJIT
+#endif // LUA_VERSION_NUM
   lua_pushcfunction (L, __gc);
   lua_setfield (L, -2, "__gc");
   lua_pushvalue (L, -2);
