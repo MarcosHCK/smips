@@ -27,24 +27,16 @@ do
   local function printout (unit, bank)
     for _, ent in ipairs (unit.block) do
       if (ent.inst) then
-        bank:emit (ent.inst:encode ())
+        bank:emit32 (ent.inst:encode ())
       elseif (ent.data) then
-        for i = 1, #ent.data, 4 do
-          local b1, b2, b3, b4 = (ent.data):byte (i, i + 3)
-          local b12 = b2 * 256 + b1
-          local b34 = b4 * 256 + b3
-          local B = b34 * 256 * 256 + b12
-          bank:emit (B)
-        end
+        bank:emits (ent.data)
       elseif (ent.size) then
-        for i = 1, ent.size, 4 do
-          bank:emit (0)
-        end
+        bank:zero (ent.size)
       end
     end
 
     if (pcall (checkArg, 1, bank, 'SmipsBank')) then
-      bank:emit (-1)
+      bank:emit32 (-1)
     end
       bank:close ()
   end

@@ -27,6 +27,18 @@ do
     __name = 'SmipsSplitter',
   }
 
+  local function getnext (self)
+    local banks_ = self.banks
+    local next_ = self.next
+
+    if (next_ + 1 > banks_:length ()) then
+      self.next = 1
+    else
+      self.next = next_ + 1
+    end
+  return banks_ [next_]
+  end
+
   function splitters.new (dir, names_)
     checkArg (1, dir, 'string')
     checkArg (2, names_, 'string')
@@ -49,20 +61,46 @@ do
   return setmetatable (st, mt)
   end
 
-  function splitters.emit (self, ...)
+  function splitters.zero (self, size)
     checkArg (0, self, 'SmipsSplitter')
-    local banks_ = self.banks
-    local main_ = self.main
-    local next_ = self.next
-    local bank = banks_ [next_]
-    
+    checkArg (1, size, 'number')
+    local words = (size - (size % 4)) / 4
+    local left = size % 4
 
-    if (next_ + 1 > banks_:length ()) then
-      self.next = 1
+    if (left > 0) then
+      error ('Unaligned write')
     else
-      self.next = next_ + 1
+      for i = 1, words do
+        local _start = 1 + (i - 1) * 4
+        local _end = _start + 3;
+        (getnext (self)):emit32 (0)
+      end
     end
-  return bank:emit (...)
+  end
+
+  function splitters.emit32 (self, value)
+    checkArg (0, self, 'SmipsSplitter')
+  return (getnext (self)):emit32 (value)
+  end
+
+  function splitters.emits (self, value)
+    checkArg (0, self, 'SmipsSplitter')
+    checkArg (1, value, 'string')
+    local size = #value
+    local next_ = self.next
+    local words = (size - (size % 4)) / 4
+    local left = size % 4
+
+    if (left > 0) then
+      error ('Unaligned write')
+    else
+      for i = 1, words do
+        local _start = 1 + (i - 1) * 4
+        local _end = _start + 3
+        local sub = value:sub (_start, _end);
+        (getnext (self)):emits (sub)
+      end
+    end
   end
 
   function splitters.close (self)
