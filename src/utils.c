@@ -70,13 +70,79 @@ static int build_path (lua_State* L)
 return 1;
 }
 
+static int half2buf (lua_State* L)
+{
+  const int min = lua_upvalueindex (1);
+  const int max = lua_upvalueindex (2);
+  const int sz = 2;
+
+  union __half2buf
+  {
+    guint16 whole;
+    gchar buf [sz];
+  } tag;
+
+  G_STATIC_ASSERT (G_SIZEOF_MEMBER (union __half2buf, whole) == sz);
+  G_STATIC_ASSERT (sizeof (*tag.buf) == 1);
+
+#if LUA_VERSION_NUM >= 502
+  if (lua_compare (L, 1, min, LUA_OPLT) || !lua_compare (L, 1, max, LUA_OPLE))
+#else // LUA_VERSION_NUM < 502
+  if (lua_lessthan (L, 1, min) || !(lua_lessthan (L, 1, max) || lua_equal (L, 1, max)))
+#endif // LUA_VERSION_NUM
+  luaL_argerror (L, 1, "too big or to small number");
+
+  guint16 value = luaL_checkinteger (L, 1);
+  guint16 corct = GUINT16_TO_LE (value);
+    tag.whole = corct;
+  lua_pushlstring (L, tag.buf, sz);
+return 1;
+}
+
+static int word2buf (lua_State* L)
+{
+  const int min = lua_upvalueindex (1);
+  const int max = lua_upvalueindex (2);
+  const int sz = 4;
+
+  union __word2buf
+  {
+    guint32 whole;
+    gchar buf [sz];
+  } tag;
+
+  G_STATIC_ASSERT (G_SIZEOF_MEMBER (union __word2buf, whole) == sz);
+  G_STATIC_ASSERT (sizeof (*tag.buf) == 1);
+
+#if LUA_VERSION_NUM >= 502
+  if (lua_compare (L, 1, min, LUA_OPLT) || !lua_compare (L, 1, max, LUA_OPLE))
+#else // LUA_VERSION_NUM < 502
+  if (lua_lessthan (L, 1, min) || !(lua_lessthan (L, 1, max) || lua_equal (L, 1, max)))
+#endif // LUA_VERSION_NUM
+  luaL_argerror (L, 1, "too big or to small number");
+
+  guint32 value = luaL_checkinteger (L, 1);
+  guint32 corct = GUINT32_TO_LE (value);
+    tag.whole = corct;
+  lua_pushlstring (L, tag.buf, sz);
+return 1;
+}
+
 G_MODULE_EXPORT
 int luaopen_utils (lua_State* L)
 {
-  lua_createtable (L, 0, 2);
+  lua_createtable (L, 0, 4);
   lua_pushcfunction (L, pwd);
   lua_setfield (L, -2, "pwd");
   lua_pushcfunction (L, build_path);
   lua_setfield (L, -2, "build_path");
+  lua_pushinteger (L, 0);
+  lua_pushinteger (L, G_MAXUINT16);
+  lua_pushcclosure (L, half2buf, 2);
+  lua_setfield (L, -2, "half2buf");
+  lua_pushinteger (L, 0);
+  lua_pushinteger (L, G_MAXUINT32);
+  lua_pushcclosure (L, word2buf, 2);
+  lua_setfield (L, -2, "word2buf");
 return 1;
 }

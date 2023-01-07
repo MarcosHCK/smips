@@ -18,6 +18,7 @@
 local insts = require ('insts')
 local log = require ('log')
 local regs = require ('regs')
+local utils = require ('utils')
 
 do
   local r_insts =
@@ -295,6 +296,18 @@ do
       end,
 
       ascii = function (arg)
+        l_directives.byte (arg)
+      end,
+
+      asciiz = function (arg)
+        local ent
+
+        l_directives.byte (arg)
+        ent = unit:last ()
+        ent.data = ent.data .. string.char (0)
+      end,
+
+      byte = function (arg)
         local env = {}
         local expr = ('do return %s; end'):format (arg)
         local chunk, reason = load (expr, '=directive', 't', env)
@@ -318,12 +331,40 @@ do
         end
       end,
 
-      asciiz = function (arg)
-        local ent
+      half = function (arg)
+        local env = {}
+        local expr = ('do return %s; end'):format (arg)
+        local chunk, reason = load (expr, '=directive', 't', env)
 
-        l_directives.ascii (arg)
-        ent = unit:last ()
-        ent.data = ent.data .. string.char (0)
+        if (not chunk) then
+          compe ('Invalid directive argument (\'%s\')', reason)
+        else
+          local word = (chunk ())
+          if (type (word) ~= 'number') then
+            compe ('Directive argument should be a constant number')
+          else
+            local data = utils.half2buf (word)
+            unit:add_data (data)
+          end
+        end
+      end,
+
+      word = function (arg)
+        local env = {}
+        local expr = ('do return %s; end'):format (arg)
+        local chunk, reason = load (expr, '=directive', 't', env)
+
+        if (not chunk) then
+          compe ('Invalid directive argument (\'%s\')', reason)
+        else
+          local word = (chunk ())
+          if (type (word) ~= 'number') then
+            compe ('Directive argument should be a constant number')
+          else
+            local data = utils.word2buf (word)
+            unit:add_data (data)
+          end
+        end
       end,
     }
 
