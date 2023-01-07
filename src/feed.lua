@@ -23,59 +23,61 @@ local utils = require ('utils')
 do
   local r_insts =
   {
-    nop = { opcode = 0, func = 0, takes = { rd = false, rt = false, rs = false, }, },
     add = { opcode = 0, func = 32, takes = { rd = true, rt = true, rs = true, }, },
-    sub = { opcode = 0, func = 34, takes = { rd = true, rt = true, rs = true, }, },
-    mul = { opcode = 0, func = 24, takes = { rd = false, rt = true, rs = true, }, },
-    mulu = { opcode = 0, func = 25, takes = { rd = false, rt = true, rs = true, }, },
+    ['and'] = { opcode = 0, func = 36, takes = { rd = true, rt = true, rs = true, }, },
     div = { opcode = 0, func = 26, takes = { rd = false, rt = true, rs = true, }, },
     divu = { opcode = 0, func = 27, takes = { rd = false, rt = true, rs = true, }, },
-    slt = { opcode = 0, func = 42, takes = { rd = true, rt = true, rs = true, }, },
-    sltu = { opcode = 0, func = 43, takes = { rd = true, rt = true, rs = true, }, },
-    ['and'] = { opcode = 0, func = 36, takes = { rd = true, rt = true, rs = true, }, },
-    ['or'] = { opcode = 0, func = 37, takes = { rd = true, rt = true, rs = true, }, },
-    ['nor'] = { opcode = 0, func = 39, takes = { rd = true, rt = true, rs = true, }, },
-    ['xor'] = { opcode = 0, func = 40, takes = { rd = true, rt = true, rs = true, }, },
     jr = { opcode = 0, func = 8, takes = { rd = false, rt = false, rs = true, }, },
     mfhi = { opcode = 0, func = 16, takes = { rd = true, rt = false, rs = false, }, },
     mflo = { opcode = 0, func = 18, takes = { rd = true, rt = false, rs = false, }, },
+    mul = { opcode = 0, func = 24, takes = { rd = false, rt = true, rs = true, }, },
+    mulu = { opcode = 0, func = 25, takes = { rd = false, rt = true, rs = true, }, },
+    nop = { opcode = 0, func = 0, takes = { rd = false, rt = false, rs = false, }, },
+    ['nor'] = { opcode = 0, func = 39, takes = { rd = true, rt = true, rs = true, }, },
+    ['or'] = { opcode = 0, func = 37, takes = { rd = true, rt = true, rs = true, }, },
+    slt = { opcode = 0, func = 42, takes = { rd = true, rt = true, rs = true, }, },
+    sltu = { opcode = 0, func = 43, takes = { rd = true, rt = true, rs = true, }, },
+    sub = { opcode = 0, func = 34, takes = { rd = true, rt = true, rs = true, }, },
+    ['xor'] = { opcode = 0, func = 40, takes = { rd = true, rt = true, rs = true, }, },
 
     -- SMIPS specific instructions
+    
+    halt = { opcode = 63, func = 63, takes = { rd = false, rt = false, rs = false, }, },
+    kbd = { opcode = 63, func = 4, takes = { rd = true, rt = false, rs = false, }, },
     pop = { opcode = 56, func = 0, takes = { rd = true, rt = false, rs = false, }, },
     push = { opcode = 56, func = 1, takes = { rd = false, rt = false, rs = true, }, },
-    halt = { opcode = 63, func = 63, takes = { rd = false, rt = false, rs = false, }, },
-    tty = { opcode = 63, func = 1, takes = { rd = false, rt = false, rs = true, }, },
     rnd = { opcode = 63, func = 2, takes = { rd = true, rt = false, rs = false, }, },
-    kbd = { opcode = 63, func = 4, takes = { rd = true, rt = false, rs = false, }, },
+    tty = { opcode = 63, func = 1, takes = { rd = false, rt = false, rs = true, }, },
 
     -- Patch to SMIPS
     sll = { opcode = 0, func = 0, takes = { rd = true, rt = true, shamt = true, }, },
-    srl = { opcode = 0, func = 2, takes = { rd = true, rt = true, shamt = true, }, },
     sllv = { opcode = 0, func = 4, takes = { rd = true, rt = true, rs = true, }, },
+    srl = { opcode = 0, func = 2, takes = { rd = true, rt = true, shamt = true, }, },
     srlv = { opcode = 0, func = 6, takes = { rd = true, rt = true, rs = true, }, },
   }
 
   local i_insts =
   {
     addi = { opcode = 8, takes = { rt = true, rs = true, cs = true, }, },
-    slti = { opcode = 10, takes = { rt = true, rs = true, cs = true, }, },
-    sltiu = { opcode = 11, takes = { rt = true, rs = true, cs = true, }, },
     andi = { opcode = 12, takes = { rt = true, rs = true, cs = true, }, },
-    ori = { opcode = 13, takes = { rt = true, rs = true, cs = true, }, },
-    xori = { opcode = 14, takes = { rt = true, rs = true, cs = true, }, },
-    lw = { opcode = 35, takes = { rt = true, rs = false, cs = true, }, address = 'e', },
-    sw = { opcode = 43, takes = { rt = true, rs = false, cs = true, }, address = 'e', },
     beq = { opcode = 4, takes = { rt = true, rs = true, cs = true, rs_first = true, }, tagable = 'r', },
     bne = { opcode = 5, takes = { rt = true, rs = true, cs = true, rs_first = true, }, tagable = 'r', },
+    lw = { opcode = 35, takes = { rt = true, rs = false, cs = true, }, address = 'e', },
+    ori = { opcode = 13, takes = { rt = true, rs = true, cs = true, }, },
+    slti = { opcode = 10, takes = { rt = true, rs = true, cs = true, }, },
+    sltiu = { opcode = 11, takes = { rt = true, rs = true, cs = true, }, },
+    sw = { opcode = 43, takes = { rt = true, rs = false, cs = true, }, address = 'e', },
+    xori = { opcode = 14, takes = { rt = true, rs = true, cs = true, }, },
 
     -- SMIPS specific instructions
-    blez = { opcode = 6, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
     bgtz = { opcode = 7, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
+    blez = { opcode = 6, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
     bltz = { opcode = 1, takes = { rt = false, rs = true, cs = true, }, tagable = 'r', },
 
     -- Hacks
     la = { opcode = 8, takes = { rt = true, cs = true, }, tagable = 'a', address = 'l', },
     li = { opcode = 8, takes = { rt = true, cs = true, }, },
+    move = { opcode = 8, takes = { rt = true, rs = true, }, },
   }
 
   local j_insts =
@@ -90,6 +92,104 @@ do
     rt = 0,
     shamt = '0',
     cs = '0',
+  }
+
+  local i_directives
+  local a_directives
+  local l_directives
+
+  i_directives = {}
+  a_directives = {}
+  l_directives =
+  {
+    space = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        compe ('Invalid directive argument (\'%s\')', reason)
+      else
+        local size = (chunk ())
+        if (type (size) == 'number') then
+          unit:add_data (size)
+        else
+          compe ('Directive argument should be a constant number')
+        end
+      end
+    end,
+
+    ascii = function (arg, unit, compe)
+      l_directives.byte (arg)
+    end,
+
+    asciiz = function (arg, unit, compe)
+      local ent
+
+      l_directives.byte (arg)
+      ent = unit:last ()
+      ent.data = ent.data .. string.char (0)
+    end,
+
+    byte = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        compe ('Invalid directive argument (\'%s\')', reason)
+      else
+        local data = (chunk ())
+        if (type (data) == 'string') then
+          unit:add_data (data)
+        elseif (type (data) == 'number') then
+          if (data < 0 or data > 255) then
+            compe ('Number %i is too big for byte data', data)
+          else
+            local byte = string.char (data)
+            unit:add_data (byte)
+          end
+        else
+          compe ('Directive argument should be a constant byte string')
+        end
+      end
+    end,
+
+    half = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        compe ('Invalid directive argument (\'%s\')', reason)
+      else
+        local word = (chunk ())
+        if (type (word) ~= 'number') then
+          compe ('Directive argument should be a constant number')
+        else
+          local data = utils.half2buf (word)
+          unit:add_data (data)
+        end
+      end
+    end,
+
+    word = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        compe ('Invalid directive argument (\'%s\')', reason)
+      else
+        local word = (chunk ())
+        if (type (word) ~= 'number') then
+          compe ('Directive argument should be a constant number')
+        else
+          local data = utils.word2buf (word)
+          unit:add_data (data)
+        end
+      end
+    end,
   }
 
   local anons = 0
@@ -245,12 +345,7 @@ do
       unit:annotate (source, linen)
     end
 
-    local macros
-    local i_directives
-    local a_directives
-    local l_directives
-
-    macros =
+    local macros =
     {
       jal = function (getnext, ...)
         local return_ = anontag ()
@@ -259,112 +354,6 @@ do
         put_iinst (i_insts.la, regs ['ra'], 0, return_)
         put_jinst (j_insts.j, target_)
         unit:add_tag (return_)
-      end,
-      move = function (getnext, ...)
-        local rt = assertreg (getnext (...))
-        local arg = getnext (...)
-        local rs = getreg (arg)
-
-        if (rs ~= nil) then
-          put_iinst (i_insts.addi, rt, rs, 0)
-        else
-          put_iinst (i_insts.addi, rt, 0, arg)
-        end
-      end,
-    }
-
-    i_directives = {}
-    a_directives = {}
-
-    l_directives =
-    {
-      space = function (arg)
-        local env = {}
-        local expr = ('do return %s; end'):format (arg)
-        local chunk, reason = load (expr, '=directive', 't', env)
-
-        if (not chunk) then
-          compe ('Invalid directive argument (\'%s\')', reason)
-        else
-          local size = (chunk ())
-          if (type (size) == 'number') then
-            unit:add_data (size)
-          else
-            compe ('Directive argument should be a constant number')
-          end
-        end
-      end,
-
-      ascii = function (arg)
-        l_directives.byte (arg)
-      end,
-
-      asciiz = function (arg)
-        local ent
-
-        l_directives.byte (arg)
-        ent = unit:last ()
-        ent.data = ent.data .. string.char (0)
-      end,
-
-      byte = function (arg)
-        local env = {}
-        local expr = ('do return %s; end'):format (arg)
-        local chunk, reason = load (expr, '=directive', 't', env)
-
-        if (not chunk) then
-          compe ('Invalid directive argument (\'%s\')', reason)
-        else
-          local data = (chunk ())
-          if (type (data) == 'string') then
-            unit:add_data (data)
-          elseif (type (data) == 'number') then
-            if (data < 0 or data > 255) then
-              compe ('Number %i is too big for byte data', data)
-            else
-              local byte = string.char (data)
-              unit:add_data (byte)
-            end
-          else
-            compe ('Directive argument should be a constant byte string')
-          end
-        end
-      end,
-
-      half = function (arg)
-        local env = {}
-        local expr = ('do return %s; end'):format (arg)
-        local chunk, reason = load (expr, '=directive', 't', env)
-
-        if (not chunk) then
-          compe ('Invalid directive argument (\'%s\')', reason)
-        else
-          local word = (chunk ())
-          if (type (word) ~= 'number') then
-            compe ('Directive argument should be a constant number')
-          else
-            local data = utils.half2buf (word)
-            unit:add_data (data)
-          end
-        end
-      end,
-
-      word = function (arg)
-        local env = {}
-        local expr = ('do return %s; end'):format (arg)
-        local chunk, reason = load (expr, '=directive', 't', env)
-
-        if (not chunk) then
-          compe ('Invalid directive argument (\'%s\')', reason)
-        else
-          local word = (chunk ())
-          if (type (word) ~= 'number') then
-            compe ('Directive argument should be a constant number')
-          else
-            local data = utils.word2buf (word)
-            unit:add_data (data)
-          end
-        end
       end,
     }
 
@@ -386,7 +375,7 @@ do
         if ((...) ~= nil) then
           compe ('Directive \'%s\' takes no arguments', name)
         else
-          directive ()
+          directive (unit, compe)
         end
       elseif (a_directives [name] ~= nil) then
         local directive = a_directives [name]
@@ -395,7 +384,7 @@ do
         if (left ~= nil) then
           compe ('Directive takes only one argument')
         else
-          directive (arg)
+          directive (arg, unit, compe)
         end
       elseif (l_directives [name] ~= nil) then
         local directive = l_directives [name]
@@ -407,7 +396,7 @@ do
           if (not arg and first) then
             compe ('Directive takes at least an argument')
           elseif (arg) then
-            directive (arg)
+            directive (arg, unit, compe)
             first = false
           else
             break
