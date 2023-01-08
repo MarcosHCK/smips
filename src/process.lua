@@ -19,8 +19,64 @@ local log = require ('log')
 local tags = require ('tags')
 
 do
+  local function getlocalf (locals, seq)
+    local top = locals:length ()
+    local pos = math.floor (top / 2)
+    local loc, max
+
+    repeat
+      loc = locals [pos + 1]
+
+      if (1 >= top) then
+        if (loc.seq > seq) then
+          max = loc
+        end
+
+        break
+      else
+        if (loc.seq < seq) then
+          top = top - math.floor (top / 2)
+          pos = pos + math.floor (top / 2)
+        else
+          top = math.floor (top / 2)
+          pos = math.floor (top / 2)
+          max = loc
+        end
+      end
+    until (false)
+  return max
+  end
+
+  local function getlocalb (locals, seq)
+    local top = locals:length ()
+    local pos = math.floor (top / 2)
+    local loc, min
+
+    repeat
+      loc = locals [pos + 1]
+
+      if (1 >= top) then
+        if (loc.seq < seq) then
+          min = loc
+        end
+
+        break
+      else
+        if (loc.seq < seq) then
+          top = top - math.floor (top / 2)
+          pos = pos + math.floor (top / 2)
+          min = loc
+        else
+          top = math.floor (top / 2)
+          pos = math.floor (top / 2)
+        end
+      end
+    until (false)
+  return min
+  end
+
   local function process (unit)
-    local source, linen
+    local source, linen, seq
     local offset = 0
 
     local function compe (...)
@@ -38,7 +94,26 @@ do
       log.error (collect ('%s: %s', where, literal))
     end
 
-    local function expression (expr)
+    local function sublocal (name, direction)
+      local alias = tonumber (name)
+      local locals = unit.locals [alias]
+
+      if (not locals) then
+        compe ('Undefined local tag \'%i%s\'', alias, direction)
+      else
+          assert (seq ~= nil, 'Fix this!')
+        local func = (direction == 'f') and getlocalf or getlocalb
+        local loc = func (locals, seq)
+
+        if (loc) then
+          return loc.tagname
+        else
+          compe ('Undefined local tag \'%i%s\'', alias, direction)
+        end
+      end
+    end
+
+    local function expression (expr, seq)
       local env, mt, reason
       local chunk, result
 
@@ -57,6 +132,9 @@ do
           local tags = unit.tags
           if (tags [key]) then
             return tags [key]
+          elseif (key:find ('^[0-9]')) then
+            -- Local tag
+            error ('unimplemented')
           else
             compe ('Undefined tag \'%s\'', key)
           end
@@ -65,6 +143,7 @@ do
 
       setmetatable (env, mt)
 
+      expr = expr:gsub ('([0-9]+)([b|f])', sublocal)
       expr = ('do return %s; end'):format (expr)
       chunk, reason = load (expr, '=expression', 't', env)
       if (not chunk) then
@@ -120,13 +199,16 @@ do
         linen = ent.loc.line
       end
 
+      seq = ent.seq
+
       if (ent.inst ~= nil) then
         local inst = ent.inst
+        local seq = ent.seq
         local cs = ent.extra [1]
         local style = ent.extra [2]
 
         if (cs) then
-          local const = expression (cs)
+          local const = expression (cs, seq)
           if (pcall (checkArg, 1, const, 'SmipsTag')) then
             if (style == 'r') then
               ent.const = ((const - tags.rel (i - 1)) / 4) - 1

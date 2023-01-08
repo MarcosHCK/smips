@@ -27,10 +27,15 @@ do
   }
 
   function unit.new ()
-    local block = vector.new ()
-    local st = { block = block, tags = { }, }
-      block:append ({ size = 0 })
-    return setmetatable (st, mt)
+    local st =
+    {
+      block = vector.new (),
+      locals = { },
+      tags = { },
+    }
+
+      st.block:append ({ size = 0 })
+  return setmetatable (st, mt)
   end
 
   function unit.last (self)
@@ -53,6 +58,18 @@ do
           source = source,
           line = line,
         }
+    end
+  end
+
+  function unit.sequence (self, seq)
+    checkArg (0, self, 'SmipsUnit')
+    checkArg (1, seq, 'number')
+    local last = self.block:last ()
+
+    if (not last) then
+      error ('Empty unit')
+    else
+      last.seq = seq
     end
   end
 
@@ -91,6 +108,22 @@ do
       local value = self.block:length ()
       local tag = tags.rel (value)
       self.tags [tagname] = tag
+    end
+  end
+
+  function unit.add_local (self, alias, seq, tagname)
+    checkArg (0, self, 'SmipsUnit')
+    checkArg (1, alias, 'number')
+    checkArg (2, seq, 'number')
+    checkArg (3, tagname, 'string')
+    local locals = self.locals
+
+    if (not locals [alias]) then
+      locals [alias] = vector.new ()
+    end do
+      locals = locals [alias]
+      locals:append ({tagname = tagname, seq = seq, })
+      self:add_tag (tagname)
     end
   end
 return unit

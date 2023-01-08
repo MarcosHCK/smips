@@ -20,6 +20,15 @@ local log = require ('log')
 local regs = require ('regs')
 local utils = require ('utils')
 
+local anontag
+do
+  local anons = 0
+  function anontag ()
+    anons = anons + 1
+    return ('__anon%i__'):format (anons)
+  end
+end
+
 do
   local r_insts =
   {
@@ -192,12 +201,6 @@ do
     end,
   }
 
-  local anons = 0
-  local function anontag ()
-    anons = anons + 1
-  return ('__anon%i__'):format (anons)
-  end
-
   local function argiter ()
     local nexti = 0
     return function (...)
@@ -231,6 +234,7 @@ do
 
   local function feed (unit, source)
     local linen = 0
+    local seq = 0
     local line
 
     local function compe (...)
@@ -335,6 +339,7 @@ do
 
       unit:add_inst (inst, cs, desc.tagable)
       unit:annotate (source, linen)
+      unit:sequence (seq)
     end
 
     local function put_jinst (desc, cs)
@@ -343,6 +348,7 @@ do
       inst = inst:typej ()
       unit:add_inst (inst, cs, desc.tagable)
       unit:annotate (source, linen)
+      unit:sequence (seq)
     end
 
     local macros =
@@ -357,14 +363,20 @@ do
       end,
     }
 
-    local function feed_tag (tagname)
-      if (tagname:match ('__anon([0-9]+)__')) then
-        compe ('Tag name \'%s\' is reserved')
+    local function feed_tag (tagname, islocal)
+      if (islocal) then
+        local anon = anontag ()
+        local alias = tonumber (tagname)
+        unit:add_local (alias, seq, anon)
       else
-        if (unit.tags [tagname] ~= nil) then
-          compe ('Redefined tag \'%s\'', tagname)
+        if (tagname:match ('__anon([0-9]+)__')) then
+          compe ('Tag name \'%s\' is reserved')
         else
-          unit:add_tag (tagname)
+          if (unit.tags [tagname] ~= nil) then
+            compe ('Redefined tag \'%s\'', tagname)
+          else
+            unit:add_tag (tagname)
+          end
         end
       end
     end
@@ -445,9 +457,10 @@ do
     end
 
     local function feed_stat (stat)
-      local tag = stat:match ('^(%.?[a-zA-Z_][a-zA-Z_0-9]*):$')
+      local tag = stat:match ('^([0-9]+):$')
+              or stat:match ('^([a-zA-Z_][a-zA-Z_0-9]*):$')
       if (tag ~= nil) then
-        return feed_tag (tag)
+        return feed_tag (tag, not not tag:find ('^[0-9]'))
       end
 
       local name, left = stat:match ('^%.([a-z]+)(.*)$')
@@ -485,6 +498,7 @@ do
       stat = stat:gsub ('^%s*', '')
       stat = stat:gsub ('%s*$', '')
       if (#stat > 0) then
+        seq = seq + 1
         feed_stat (stat)
       end
     end
@@ -501,6 +515,7 @@ do
 
     repeat
       line = io.read ('*l')
+
       if (line) then
         line = line:gsub ('#.*$', '')
         linen = linen + 1
