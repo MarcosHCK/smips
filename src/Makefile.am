@@ -36,6 +36,7 @@ noinst_LTLIBRARIES=\
 
 noinst_HEADERS=\
 	bank.h \
+	inst.h \
 	insts.h \
 	load.h \
 	log.h \
@@ -113,6 +114,7 @@ libluacmpt_la_LIBADD=\
 
 smips_LUCS=\
 	feed.luc \
+	isa.luc \
 	process.luc \
 	regs.luc \
 	smips.luc \

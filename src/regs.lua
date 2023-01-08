@@ -16,6 +16,44 @@
 --  along with SMIPS Assembler.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+--
+-- S-MIPS O32 calling convention
+-- +---------+---------+-----+---------------------+
+-- | Name    | Number  |  P  | Usage               |
+-- +---------+---------+-----+---------------------+
+-- | $zero   | r0      |  -  | Constant 0          |
+-- +---------+---------+-----+---------------------+
+-- | $at     | r1      |  -  | Assembler temporary |
+-- +---------+---------+-----+---------------------+
+-- | $v0-$v1 | r2-r3   |  N  | Function returns    |
+-- +---------+---------+-----+---------------------+
+-- | $a0-$a3 | r4-r7   |  N  | Function arguments  |
+-- +---------+---------+-----+---------------------+
+-- | $t0-$t7 | r8-r15  |  N  | Temporaries         |
+-- +---------+---------+-----+---------------------+
+-- | $s0-$s7 | r16-r23 |  Y  | Saved temporaries   |
+-- +---------+---------+-----+---------------------+
+-- | $t8-$t9 | r24-r25 |  N  | Temporaries         |
+-- +---------+---------+-----+---------------------+
+-- | $k0-$k1 | r26-r27 |  -  | Reserved for OS     |
+-- +---------+---------+-----+---------------------+
+-- | $gp     | r28     |  Y  | Global pointer      |
+-- +---------+---------+-----+---------------------+
+-- | $ra     | r29     |  Y  | Return address      |
+-- +---------+---------+-----+---------------------+
+-- | $fp     | r30     |  Y  | Frame pointer       |
+-- +---------+---------+-----+---------------------+
+-- | $sp     | r31     |  Y  | Stack pointer       |
+-- +---------+---------+-----+---------------------+
+--
+-- - Procedures with more than four arguments they are pushed
+--   onto the stack in normal order (fifth arguments is pushed
+--   first, then sixth)
+-- - Argument registers $a0-$a3 may not be saved by the caller
+-- - *P stands for 'preserve', it indicated whether the callee
+--   must preserve register contents
+--
+
 do
   local regs =
   {
