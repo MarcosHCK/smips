@@ -17,7 +17,6 @@
 ]]
 local insts = require ('insts')
 local log = require ('log')
-local utils = require ('utils')
 
 local anontag
 do

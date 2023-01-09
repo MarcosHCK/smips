@@ -203,21 +203,14 @@ do
     end,
 
     word = function (arg, unit, compe)
-      local env = {}
-      local expr = ('do return %s; end'):format (arg)
-      local chunk, reason = load (expr, '=directive', 't', env)
-
-      if (not chunk) then
-        compe ('Invalid directive argument (\'%s\')', reason)
-      else
-        local word = (chunk ())
-        if (type (word) ~= 'number') then
-          compe ('Directive argument should be a constant number')
-        else
-          local data = utils.word2buf (word)
-          unit:add_data (data)
-        end
-      end
+      unit:add_data (4, arg,
+        function (val, compe)
+          if (type (val) ~= 'number') then
+            compe ('Directive argument should be a constant number')
+          else
+            return utils.word2buf (val)
+          end
+        end)
     end,
   }
 end

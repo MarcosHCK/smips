@@ -27,13 +27,13 @@ Author: MarcosHCK
       Lua sources
     -->
 
-    <file>feed.luc</file>
-    <file>isa.luc</file>
-    <file>process.luc</file>
-    <file>smips.luc</file>
-    <file>splitters.luc</file>
-    <file>unit.luc</file>
-    <file>vector.luc</file>
+    <file compressed="true">feed.luc</file>
+    <file compressed="true">isa.luc</file>
+    <file compressed="true">process.luc</file>
+    <file compressed="true">smips.luc</file>
+    <file compressed="true">splitters.luc</file>
+    <file compressed="true">unit.luc</file>
+    <file compressed="true">vector.luc</file>
 
   </gresource>
 

@@ -103,7 +103,7 @@ do
       end
     end
 
-    local function expression (expr, seq)
+    local function expression (expr)
       local env, mt, reason
       local chunk, result
 
@@ -193,12 +193,11 @@ do
 
       if (ent.inst ~= nil) then
         local inst = ent.inst
-        local seq = ent.seq
         local cs = ent.extra [1]
         local style = ent.extra [2]
 
         if (cs) then
-          local const = expression (cs, seq)
+          local const = expression (cs)
           if (pcall (checkArg, 1, const, 'SmipsTag')) then
             if (style == 'r') then
               ent.const = ((const - tags.rel (i - 1)) / 4) - 1
@@ -233,10 +232,24 @@ do
           ent.size = size + cors
           ent.data = ent.data .. corz
       elseif (ent.size) then
-        local size = ent.size
-        local char = string.char (0)
-        local data = char:rep (size)
-          ent.data = data
+        if (not ent.extra) then
+          local size = ent.size
+          local char = string.char (0)
+          local data = char:rep (size)
+            ent.data = data
+        else
+          local arg = ent.extra [1]
+          local trans = ent.extra [2]
+          local val = expression (arg)
+            assert (trans)
+
+          if (pcall (checkArg, 1, val, 'SmipsTag')) then
+            ent.delay = val
+            ent.trans = trans
+          else
+            ent.data = trans (val)
+          end
+        end
       end
 
       ent.offset = offset
@@ -256,6 +269,11 @@ do
         local tag = ent.const
         local inst = ent.inst
         inst.constant = calculate (tag)
+      elseif (ent.delay) then
+        local trans = ent.trans
+        local tag = ent.delay
+        local val = calculate (tag)
+          ent.data = trans (val)
       end
     end
   end
