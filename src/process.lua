@@ -20,27 +20,22 @@ local tags = require ('tags')
 
 do
   local function getlocalf (locals, seq)
-    local top = locals:length ()
-    local pos = math.floor (top / 2)
-    local loc, max
+    local top = locals:length () - 1
+    local pos = 0
+    local max
 
     repeat
-      loc = locals [pos + 1]
-
-      if (1 >= top) then
-        if (loc.seq > seq) then
-          max = loc
-        end
-
+      if (pos > top) then
         break
       else
-        if (loc.seq < seq) then
-          top = top - math.floor (top / 2)
-          pos = pos + math.floor (top / 2)
-        else
-          top = math.floor (top / 2)
-          pos = math.floor (top / 2)
+        local half = math.floor (pos + top)
+        local loc = locals [half + 1]
+
+        if (loc.seq > seq) then
+          top = half - 1
           max = loc
+        else
+          pos = half + 1
         end
       end
     until (false)
@@ -48,27 +43,22 @@ do
   end
 
   local function getlocalb (locals, seq)
-    local top = locals:length ()
-    local pos = math.floor (top / 2)
-    local loc, min
+    local top = locals:length () - 1
+    local pos = 0
+    local min
 
     repeat
-      loc = locals [pos + 1]
-
-      if (1 >= top) then
-        if (loc.seq < seq) then
-          min = loc
-        end
-
+      if (pos > top) then
         break
       else
-        if (loc.seq < seq) then
-          top = top - math.floor (top / 2)
-          pos = pos + math.floor (top / 2)
-          min = loc
+        local half = math.floor (pos + top)
+        local loc = locals [half + 1]
+
+        if (loc.seq > seq) then
+          top = half - 1
         else
-          top = math.floor (top / 2)
-          pos = math.floor (top / 2)
+          pos = half + 1
+          min = loc
         end
       end
     until (false)
