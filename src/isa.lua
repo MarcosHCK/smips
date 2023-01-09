@@ -18,6 +18,44 @@
 local utils = require ('utils')
 local isa = {}
 
+--
+-- S-MIPS O32 calling convention
+-- +---------+---------+-----+---------------------+
+-- | Name    | Number  |  P  | Usage               |
+-- +---------+---------+-----+---------------------+
+-- | $zero   | r0      |  -  | Constant 0          |
+-- +---------+---------+-----+---------------------+
+-- | $at     | r1      |  -  | Assembler temporary |
+-- +---------+---------+-----+---------------------+
+-- | $v0-$v1 | r2-r3   |  N  | Function returns    |
+-- +---------+---------+-----+---------------------+
+-- | $a0-$a3 | r4-r7   |  N  | Function arguments  |
+-- +---------+---------+-----+---------------------+
+-- | $t0-$t7 | r8-r15  |  N  | Temporaries         |
+-- +---------+---------+-----+---------------------+
+-- | $s0-$s7 | r16-r23 |  Y  | Saved temporaries   |
+-- +---------+---------+-----+---------------------+
+-- | $t8-$t9 | r24-r25 |  N  | Temporaries         |
+-- +---------+---------+-----+---------------------+
+-- | $k0-$k1 | r26-r27 |  -  | Reserved for OS     |
+-- +---------+---------+-----+---------------------+
+-- | $gp     | r28     |  Y  | Global pointer      |
+-- +---------+---------+-----+---------------------+
+-- | $ra     | r29     |  Y  | Return address      |
+-- +---------+---------+-----+---------------------+
+-- | $fp     | r30     |  Y  | Frame pointer       |
+-- +---------+---------+-----+---------------------+
+-- | $sp     | r31     |  Y  | Stack pointer       |
+-- +---------+---------+-----+---------------------+
+--
+-- - Procedures with more than four arguments they are pushed
+--   onto the stack in normal order (fifth arguments is pushed
+--   first, then sixth)
+-- - Argument registers $a0-$a3 may not be saved by the caller
+-- - *P stands for 'preserve', it indicated whether the callee
+--   must preserve register contents
+--
+
 do
   isa.r_insts =
   {
@@ -82,98 +120,164 @@ do
     j = { opcode = 2, takes = { cs = true, }, tagable = 'j', },
   }
 
+  isa.defaults = { rd = 0, rs = 0, rt = 0, shamt = '0', cs = '0', }
+end
+
+do
   isa.i_directives = {}
   isa.a_directives = {}
-  isa.l_directives = {}
-  isa.defaults = { rd = 0, rs = 0, rt = 0, shamt = '0', cs = '0', }
+end
 
-  function isa.l_directives.space (arg, unit, compe)
-    local env = {}
-    local expr = ('do return %s; end'):format (arg)
-    local chunk, reason = load (expr, '=directive', 't', env)
+do
+  isa.l_directives =
+  {
+    ascii = function (arg, unit, compe)
+      isa.l_directives.byte (arg, unit, compe)
+    end,
 
-    if (not chunk) then
-      return true, ('Invalid directive argument (\'%s\')'):format (reason)
-    else
-      local size = (chunk ())
-      if (type (size) == 'number') then
-        unit:add_data (size)
+    asciiz = function (arg, unit, compe)
+      local ent
+
+      isa.l_directives.byte (arg, unit, compe)
+      ent = unit:last ()
+      ent.data = ent.data .. string.char (0)
+    end,
+
+    byte = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        compe ('Invalid directive argument (\'%s\')', reason)
       else
-        return true, ('Directive argument should be a constant number')
+        local data = (chunk ())
+        if (type (data) == 'string') then
+          unit:add_data (data)
+        elseif (type (data) == 'number') then
+          if (data < 0 or data > 255) then
+            compe ('Number %i is too big for byte data', data)
+          else
+            local byte = string.char (data)
+            unit:add_data (byte)
+          end
+        else
+          compe ('Directive argument should be a constant byte string')
+        end
       end
+    end,
+
+    space = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        return true, ('Invalid directive argument (\'%s\')'):format (reason)
+      else
+        local size = (chunk ())
+        if (type (size) == 'number') then
+          unit:add_data (size)
+        else
+          return true, ('Directive argument should be a constant number')
+        end
+      end
+    end,
+
+    half = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        compe ('Invalid directive argument (\'%s\')', reason)
+      else
+        local word = (chunk ())
+        if (type (word) ~= 'number') then
+          compe ('Directive argument should be a constant number')
+        else
+          local data = utils.half2buf (word)
+          unit:add_data (data)
+        end
+      end
+    end,
+
+    word = function (arg, unit, compe)
+      local env = {}
+      local expr = ('do return %s; end'):format (arg)
+      local chunk, reason = load (expr, '=directive', 't', env)
+
+      if (not chunk) then
+        compe ('Invalid directive argument (\'%s\')', reason)
+      else
+        local word = (chunk ())
+        if (type (word) ~= 'number') then
+          compe ('Directive argument should be a constant number')
+        else
+          local data = utils.word2buf (word)
+          unit:add_data (data)
+        end
+      end
+    end,
+  }
+end
+
+do
+  local regs =
+  {
+    zero = 0,
+    at = 1,
+    gp = 28,
+    ra = 29,
+    fp = 30,
+    sp = 31,
+  }
+
+  local function getbase (bases, n)
+    local base = bases [n]
+    if (base == nil) then
+      return getbase (bases, n - 1)
+    end
+  return base, n
+  end
+
+  local function checkn (lim, n)
+    if (n < lim.limit) then
+      local bases = lim.bases
+      local base, at = getbase (bases, n)
+      return base + (n - at)
     end
   end
 
-  function isa.l_directives.ascii (arg, unit, compe)
-    isa.l_directives.byte (arg, unit, compe)
-  end
+  local lims =
+  {
+    a = { limit =  4, bases = { [0] =  4,           }, }, -- a0-a3; a0 =  4
+    k = { limit =  2, bases = { [0] = 26,           }, }, -- k0-k1; k0 = 26
+    s = { limit =  8, bases = { [0] = 16,           }, }, -- s0-s7; s0 = 16
+    t = { limit = 10, bases = { [0] =  8, [8] = 24, }, }, -- t0-t9; t0 =  8, t8 = 24
+    v = { limit =  2, bases = { [0] =  2,           }, }, -- v0-v1; v0 =  2
+  }
 
-  function isa.l_directives.asciiz (arg, unit, compe)
-    local ent
-
-    isa.l_directives.byte (arg, unit, compe)
-    ent = unit:last ()
-    ent.data = ent.data .. string.char (0)
-  end
-
-  function isa.l_directives.byte (arg, unit, compe)
-    local env = {}
-    local expr = ('do return %s; end'):format (arg)
-    local chunk, reason = load (expr, '=directive', 't', env)
-
-    if (not chunk) then
-      compe ('Invalid directive argument (\'%s\')', reason)
-    else
-      local data = (chunk ())
-      if (type (data) == 'string') then
-        unit:add_data (data)
-      elseif (type (data) == 'number') then
-        if (data < 0 or data > 255) then
-          compe ('Number %i is too big for byte data', data)
-        else
-          local byte = string.char (data)
-          unit:add_data (byte)
+  local mt =
+  {
+    __index = function (_, key)
+      if (not key:find ('[a-z]')) then
+        local val = tonumber (key)
+        if (val >= 0 and val < 32) then
+          return val
         end
       else
-        compe ('Directive argument should be a constant byte string')
+        local t, n = key:match ('^([a-z])([0-9]+)$')
+        if (t and lims [t]) then
+          local lim = lims [t]
+          local val = tonumber (n)
+          return checkn (lim, val)
+        end
       end
     end
-  end
+  }
 
-  function isa.l_directives.half (arg, unit, compe)
-    local env = {}
-    local expr = ('do return %s; end'):format (arg)
-    local chunk, reason = load (expr, '=directive', 't', env)
-
-    if (not chunk) then
-      compe ('Invalid directive argument (\'%s\')', reason)
-    else
-      local word = (chunk ())
-      if (type (word) ~= 'number') then
-        compe ('Directive argument should be a constant number')
-      else
-        local data = utils.half2buf (word)
-        unit:add_data (data)
-      end
-    end
-  end
-
-  function isa.l_directives.word (arg, unit, compe)
-    local env = {}
-    local expr = ('do return %s; end'):format (arg)
-    local chunk, reason = load (expr, '=directive', 't', env)
-
-    if (not chunk) then
-      compe ('Invalid directive argument (\'%s\')', reason)
-    else
-      local word = (chunk ())
-      if (type (word) ~= 'number') then
-        compe ('Directive argument should be a constant number')
-      else
-        local data = utils.word2buf (word)
-        unit:add_data (data)
-      end
-    end
-  end
-return isa
+  isa.regs = setmetatable (regs, mt)
 end
+
+return isa

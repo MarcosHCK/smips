@@ -17,7 +17,6 @@
 ]]
 local insts = require ('insts')
 local log = require ('log')
-local regs = require ('regs')
 local utils = require ('utils')
 
 local anontag
@@ -30,6 +29,15 @@ do
 end
 
 do
+  local regs = require ('isa').regs
+  local r_insts = require ('isa').r_insts
+  local i_insts = require ('isa').i_insts
+  local j_insts = require ('isa').j_insts
+  local defaults = require ('isa').defaults
+  local i_directives = require ('isa').i_directives
+  local a_directives = require ('isa').a_directives
+  local l_directives = require ('isa').l_directives
+
   local function argiter ()
     local nexti = 0
     return function (...)
@@ -60,14 +68,6 @@ do
       return regs [reg]
     end
   end
-
-  local r_insts = require ('isa').r_insts
-  local i_insts = require ('isa').i_insts
-  local j_insts = require ('isa').j_insts
-  local defaults = require ('isa').defaults
-  local i_directives = require ('isa').i_directives
-  local a_directives = require ('isa').a_directives
-  local l_directives = require ('isa').l_directives
 
   local function feed (unit, source)
     local linen = 0

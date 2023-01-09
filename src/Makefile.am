@@ -116,7 +116,6 @@ smips_LUCS=\
 	feed.luc \
 	isa.luc \
 	process.luc \
-	regs.luc \
 	smips.luc \
 	splitters.luc \
 	unit.luc \
