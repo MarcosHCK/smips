@@ -68,15 +68,15 @@ AC_ARG_ENABLE(
   [AS_HELP_STRING(
     [--enable-debug],
     [Enable debug object output @<:@default=no@:>@])],
-  [AM_CONDITIONAL([DEBUG], [test "x$enableval" != "xno"])
-   if test "x$enableval" != "xno"; then
-    AC_DEFINE([DEBUG], [1], [Debugging enabled])
-    AC_SUBST([DEBUG], [1])
-   else
+  [ AM_CONDITIONAL([DEBUG], [test "x$enableval" != "xno"])
+    AS_IF(
+      [test "x$enableval" != "xno"],
+      [ AC_DEFINE([DEBUG], [1], [Debugging enabled])
+        AC_SUBST([DEBUG], [1]) ],
+      [ AC_DEFINE([DEBUG], [0], [Debugging disabled])
+        AC_SUBST([DEBUG], [0]) ]) ],
+  [ AM_CONDITIONAL([DEBUG], [test 0 = 1])
     AC_DEFINE([DEBUG], [0], [Debugging disabled])
-    AC_SUBST([DEBUG], [0])
-   fi],
-  [ AC_DEFINE([DEBUG], [0], [Debugging disabled])
     AC_SUBST([DEBUG], [0])])
 
 AC_ARG_ENABLE(
@@ -85,14 +85,14 @@ AC_ARG_ENABLE(
     [--enable-developer],
     [Enable developer features @<:@default=no@:>@])],
   [AM_CONDITIONAL([DEVELOPER], [test "x$enableval" != "xno"])
-   if test "x$enableval" != "xno"; then
-    AC_DEFINE([DEVELOPER], [1], [Developer features enabled])
-    AC_SUBST([DEVELOPER], [1])
-   else
+   AS_IF(
+    [test "x$enableval" != "xno"],
+    [ AC_DEFINE([DEVELOPER], [1], [Developer features enabled])
+      AC_SUBST([DEVELOPER], [1]) ],
+    [ AC_DEFINE([DEVELOPER], [0], [Developer features disabled])
+      AC_SUBST([DEVELOPER], [0]) ]) ],
+  [ AM_CONDITIONAL([DEVELOPER], [test 0 = 1])
     AC_DEFINE([DEVELOPER], [0], [Developer features disabled])
-    AC_SUBST([DEVELOPER], [0])
-   fi],
-  [ AC_DEFINE([DEVELOPER], [0], [Developer features disabled])
     AC_SUBST([DEVELOPER], [0])])
 
 AC_SUBST([PACKAGE_VERSION_MAJOR], [v_MAJOR])
